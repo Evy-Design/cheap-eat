@@ -10,7 +10,7 @@ De website wordt gebouwd vanuit `../prototype` met `python3 build.py --web`.
 
 ## Supabase instellen (eenmalig)
 
-1. **Database**: Supabase → SQL Editor → plak de inhoud van `supabase/schema.sql` → Run.
+1. **Database**: Supabase → SQL Editor → plak de inhoud van `supabase/schema.sql` → Run. Het script mag je opnieuw uitvoeren; doe dat na elke update van dit bestand (het huishouden met uitnodigingen is later toegevoegd).
 2. **Code in plaats van link in de e-mail**: Authentication → Emails (Templates).
    Zet in de templates **Magic Link**, **Confirm signup** en **Change Email Address** de code in de tekst, bijvoorbeeld:
 
@@ -28,6 +28,7 @@ Let op: Supabase verstuurt op het gratis plan maar een paar e-mails per uur. Voo
 
 ## Wat nog niet echt is
 
-- Huishouden koppelen is nog een demo: een uitnodiging wordt niet echt verstuurd.
+- Uitnodigen gaat via een link die je zelf deelt (WhatsApp, sms of e-mail). Supabase stuurt geen uitnodigingsmail.
+- Zonder Supabase-gegevens in `config.js` draait de site in demomodus: accounts staan alleen in de browser en de code verschijnt op het scherm.
 - Prijzen zijn voorbeeldprijzen.
 - Recepten van Picnic staan erin met naam en ingrediënten en een link naar picnic.app, maar zonder foto's.

@@ -570,6 +570,18 @@ input[type="file"]:focus-visible + * { outline: 2px solid var(--focus); }
 .gate-qr svg { display: block; width: 100%; height: auto; }
 .gate-url { font-weight: 600; word-break: break-all; }
 
+/* Invites */
+.invite-hint { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: rgba(243,242,234,.1); font-size: 15px; line-height: 22px; }
+.invite-link { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 14px; line-height: 20px; word-break: break-all; user-select: all; }
+.incoming { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--lime); color: var(--on-lime); }
+.incoming-head { display: flex; gap: var(--space-3); align-items: flex-start; }
+.incoming-head p { margin: 0; }
+.tip-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.incoming .ce-btn-secondary { background: rgba(255,255,255,.6); color: var(--on-lime); }
+.member-links { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: 2px; }
+.prio-notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+a.ce-btn { text-decoration: none; box-sizing: border-box; }
+
 
 html.web, html.web body { height: 100%; }
 html.web body { padding: 0; align-items: stretch; background: var(--surface); }
@@ -910,10 +922,137 @@ html.web body:has(.gate) { display: block; background: var(--surface); }
         .then(function (row) { return row ? row.data : null; });
     },
     save: function (data) {
-      return uid().then(function (id) { return sb.from("user_data").upsert({ user_id: id, data: data, updated_at: new Date().toISOString() }).then(unwrap); });
+      return uid().then(function (id) {
+        var now = new Date().toISOString();
+        return Promise.all([
+          sb.from("user_data").upsert({ user_id: id, data: data, updated_at: now }).then(unwrap),
+          // only your name and likes are visible to people in your household
+          sb.from("shared_profile").upsert({ user_id: id, name: (data.account && data.account.name) || "", liked: data.liked || {}, updated_at: now }).then(unwrap)
+        ]);
+      });
     },
     signOut: function () { return sb.auth.signOut(); },
+    // ---- household ----
+    createInvite: function (email, name) {
+      var code = Array.from(crypto.getRandomValues(new Uint8Array(10))).map(function (n) { return "abcdefghjkmnpqrstuvwxyz23456789"[n % 31]; }).join("");
+      return uid().then(function (id) { return sb.from("household_invites").insert({ code: code, inviter: id, inviter_name: name || "", email: email || null }).then(unwrap); }).then(function () { return { code: code }; });
+    },
+    getInvite: function (code) { return sb.rpc("get_invite", { p_code: code }).then(unwrap).then(function (rows) { var r = rows && rows[0]; return r ? { code: code, inviterName: r.inviter_name, email: r.email } : null; }); },
+    myInvites: function () { return sb.rpc("my_invites").then(unwrap).then(function (rows) { return (rows || []).map(function (r) { return { code: r.code, inviterName: r.inviter_name, email: r.email }; }); }); },
+    acceptInvite: function (code) { return sb.rpc("accept_invite", { p_code: code }).then(unwrap); },
+    declineInvite: function (code) { return sb.rpc("decline_invite", { p_code: code }).then(unwrap); },
+    cancelInvite: function (code) { return sb.from("household_invites").delete().eq("code", code).then(unwrap); },
+    household: function () {
+      return uid().then(function (id) {
+        return Promise.all([
+          sb.from("household_links").select("a,b").then(unwrap),
+          sb.from("household_invites").select("code,email").eq("inviter", id).is("accepted_by", null).then(unwrap)
+        ]).then(function (res) {
+          var ids = (res[0] || []).map(function (l) { return l.a === id ? l.b : l.a; });
+          var pending = (res[1] || []).map(function (i) { return { code: i.code, email: i.email }; });
+          if (!ids.length) return { partners: [], pending: pending };
+          return sb.from("shared_profile").select("user_id,name,liked").in("user_id", ids).then(unwrap).then(function (rows) {
+            return { partners: (rows || []).map(function (r) { return { id: r.user_id, name: r.name || "Partner", liked: r.liked || {} }; }), pending: pending };
+          });
+        });
+      });
+    },
+    removePartner: function (other) {
+      return uid().then(function (id) { var a = id < other ? id : other, b = id < other ? other : id; return sb.from("household_links").delete().eq("a", a).eq("b", b).then(unwrap); });
+    },
     deleteAccount: function () { return sb.rpc("delete_my_account").then(unwrap).then(function () { return sb.auth.signOut(); }); }
+  };
+})();
+
+</script>
+<script>
+/* Cheap-eat demo backend: the same interface as web-api.js (Supabase), stored in this browser.
+   Every e-mail address is its own account, codes are shown on screen, invites work between accounts on this device. */
+var CE_DEMO_API = (function () {
+  var KEY = "cheapeat-demo-v1";
+  function db() { try { var d = JSON.parse(localStorage.getItem(KEY) || "null"); if (d) return d; } catch (e) {} return { users: {}, session: null, codes: {}, invites: {}, links: [] }; }
+  function put(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { throw new Error("Opslaan in deze browser lukt niet. Staat privé-modus aan?"); } }
+  function later(v) { return new Promise(function (res) { setTimeout(function () { res(v); }, 250); }); }
+  function fail(m) { return new Promise(function (_, rej) { setTimeout(function () { rej(new Error(m)); }, 250); }); }
+  function rid(n) { var c = "abcdefghjkmnpqrstuvwxyz23456789", s = ""; for (var i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+  function me(d) { return d.session && d.users[d.session]; }
+  function byId(d, id) { for (var e in d.users) if (d.users[e].id === id) return d.users[e]; return null; }
+  function linked(d, a, b) { return d.links.some(function (l) { return (l[0] === a && l[1] === b) || (l[0] === b && l[1] === a); }); }
+
+  return {
+    demo: true,
+    lastCode: function (email) { return db().codes[email] && db().codes[email].code; },
+    session: function () { var d = db(), u = me(d); return later(u ? { user: { id: u.id, email: u.email } } : null); },
+    sendCode: function (email, create) {
+      var d = db();
+      if (create && d.users[email]) return fail("Er is al een account met dit e-mailadres. Log in.");
+      if (!create && !d.users[email]) return fail("Er is nog geen account met dit e-mailadres. Maak eerst een account aan.");
+      d.codes[email] = { code: String(Math.floor(100000 + Math.random() * 900000)), create: !!create }; put(d); return later();
+    },
+    verify: function (email, code) {
+      var d = db(), c = d.codes[email];
+      if (!c || c.code !== code) return fail("Deze code klopt niet of is verlopen. Vraag een nieuwe code aan.");
+      if (!d.users[email]) d.users[email] = { id: "u-" + rid(10), email: email, data: null, shared: null };
+      d.session = email; delete d.codes[email]; put(d); return later();
+    },
+    changeEmail: function (email) {
+      var d = db(); if (d.users[email]) return fail("Dit e-mailadres is al in gebruik.");
+      d.codes[email] = { code: String(Math.floor(100000 + Math.random() * 900000)), change: true }; put(d); return later();
+    },
+    verifyEmailChange: function (email, code) {
+      var d = db(), c = d.codes[email], u = me(d);
+      if (!c || c.code !== code) return fail("Deze code klopt niet of is verlopen. Vraag een nieuwe code aan.");
+      delete d.users[u.email]; u.email = email; d.users[email] = u; d.session = email; delete d.codes[email]; put(d); return later();
+    },
+    load: function () { var u = me(db()); return later(u ? u.data : null); },
+    save: function (data) {
+      var d = db(), u = me(d); if (!u) return fail("Je bent uitgelogd. Log opnieuw in.");
+      u.data = data; u.shared = { name: data.account ? data.account.name : "", liked: data.liked || {} }; put(d); return later();
+    },
+    signOut: function () { var d = db(); d.session = null; put(d); return later(); },
+    deleteAccount: function () {
+      var d = db(), u = me(d); if (!u) return later();
+      d.links = d.links.filter(function (l) { return l[0] !== u.id && l[1] !== u.id; });
+      Object.keys(d.invites).forEach(function (c) { if (d.invites[c].inviter === u.id) delete d.invites[c]; });
+      delete d.users[u.email]; d.session = null; put(d); return later();
+    },
+    // household
+    createInvite: function (email, name) {
+      var d = db(), u = me(d), code = rid(8);
+      d.invites[code] = { code: code, inviter: u.id, inviterName: name || (u.shared && u.shared.name) || u.email.split("@")[0], email: email, acceptedBy: null, at: new Date().toISOString() };
+      put(d); return later({ code: code });
+    },
+    getInvite: function (code) { var i = db().invites[code]; return later(i && !i.acceptedBy ? { code: code, inviterName: i.inviterName, email: i.email } : null); },
+    myInvites: function () {
+      var d = db(), u = me(d); if (!u) return later([]);
+      return later(Object.keys(d.invites).map(function (c) { return d.invites[c]; }).filter(function (i) { return !i.acceptedBy && i.email === u.email && i.inviter !== u.id && !linked(d, i.inviter, u.id); })
+        .map(function (i) { return { code: i.code, inviterName: i.inviterName, email: i.email }; }));
+    },
+    acceptInvite: function (code) {
+      var d = db(), u = me(d), i = d.invites[code];
+      if (!i || i.acceptedBy) return fail("Deze uitnodiging is niet meer geldig. Vraag om een nieuwe link.");
+      if (i.inviter === u.id) return fail("Dit is je eigen uitnodiging. Stuur de link naar iemand anders.");
+      i.acceptedBy = u.id; if (!linked(d, i.inviter, u.id)) d.links.push([i.inviter, u.id]); put(d); return later();
+    },
+    declineInvite: function (code) { var d = db(); delete d.invites[code]; put(d); return later(); },
+    cancelInvite: function (code) { var d = db(); delete d.invites[code]; put(d); return later(); },
+    household: function () {
+      var d = db(), u = me(d); if (!u) return later({ partners: [], pending: [] });
+      var partners = d.links.filter(function (l) { return l[0] === u.id || l[1] === u.id; }).map(function (l) {
+        var p = byId(d, l[0] === u.id ? l[1] : l[0]); if (!p) return null;
+        return { id: p.id, name: (p.shared && p.shared.name) || p.email.split("@")[0], email: p.email, liked: (p.shared && p.shared.liked) || {} };
+      }).filter(Boolean);
+      var pending = Object.keys(d.invites).map(function (c) { return d.invites[c]; }).filter(function (i) { return i.inviter === u.id && !i.acceptedBy; }).map(function (i) { return { code: i.code, email: i.email }; });
+      return later({ partners: partners, pending: pending });
+    },
+    removePartner: function (id) { var d = db(), u = me(d); d.links = d.links.filter(function (l) { return !((l[0] === u.id && l[1] === id) || (l[1] === u.id && l[0] === id)); }); put(d); return later(); },
+    // demo only: let an invited person "accept" without a second phone
+    demoAccept: function (code, likes) {
+      var d = db(), i = d.invites[code]; if (!i) return fail("Uitnodiging niet gevonden.");
+      var email = i.email || ("demo-" + code + "@voorbeeld.nl"), name = email.split("@")[0].split(/[._-]/)[0]; name = name.charAt(0).toUpperCase() + name.slice(1);
+      if (!d.users[email]) { var lk = {}; (likes || []).forEach(function (id) { lk[id] = 1; }); d.users[email] = { id: "u-" + rid(10), email: email, data: { account: { name: name } , liked: lk }, shared: { name: name, liked: lk } }; }
+      var p = d.users[email]; i.acceptedBy = p.id; if (!linked(d, i.inviter, p.id)) d.links.push([i.inviter, p.id]); put(d); return later();
+    }
   };
 })();
 
@@ -1210,7 +1349,7 @@ var CE_DATA = (function () {
   function suggestions(s, day) {
     return allRecipes(s).filter(function (r) { return s.plan.indexOf(r.id) < 0 && allowed(r, s); })
       .map(function (r) { return { r: r, extra: extraFor(s.plan, day, r.id, s.persons, s.bio), ni: newIngs(s.plan, day, r.id), liked: !!s.liked[r.id] }; })
-      .sort(function (a, b) { return (a.extra - (a.liked ? 0.75 : 0) - fanScore(s, a.r.id) * 0.75) - (b.extra - (b.liked ? 0.75 : 0) - fanScore(s, b.r.id) * 0.75); });
+      .sort(function (a, b) { var w = hasPrio(s, "besparen") ? 1 : 0.4; return (a.extra * w - (a.liked ? 0.75 : 0) - fanScore(s, a.r.id) * 0.75 - prioScore(s, a.r, s.plan)) - (b.extra * w - (b.liked ? 0.75 : 0) - fanScore(s, b.r.id) * 0.75 - prioScore(s, b.r, s.plan)); });
   }
   function fmtNum(q) { return (Math.round(q * 10) / 10).toString().replace(".", ","); }
   function fmtQty(q, unit) { if (unit === "g" && q >= 1000) return fmtNum(q / 1000) + " kg"; if (unit === "ml" && q >= 1000) return fmtNum(q / 1000) + " l"; return fmtNum(q) + " " + unit; }
@@ -1253,7 +1392,7 @@ var CE_DATA = (function () {
       cands.forEach(function (r) {
         if (plan.indexOf(r.id) > -1) return;
         var ex = extraFor(plan, d, r.id, s.persons, s.bio);
-        var score = affinity(r, prof, opts.prefs) + (s.liked[r.id] ? 2.5 : 0) + (partnerFans(s, r.id).length ? (s.liked[r.id] ? 2 : 1.5) : 0) - ex * 0.45;
+        var score = affinity(r, prof, opts.prefs) + (s.liked[r.id] ? 2.5 : 0) + (partnerFans(s, r.id).length ? (s.liked[r.id] ? 2 : 1.5) : 0) + prioScore(s, r, plan) - ex * (hasPrio(s, "besparen") ? 0.45 : 0.2);
         if (!best || score > best.score) best = { id: r.id, score: score };
       });
       if (best) plan[d] = best.id;
@@ -1290,12 +1429,29 @@ var CE_DATA = (function () {
   }
 
   /* ---------------- accounts: real e-mail codes when CE_API (Supabase) is present, demo codes otherwise ---------------- */
-  var API = window.CE_API || null;
+  var API = window.CE_API || window.CE_DEMO_API;
+  var INVITE_PARAM = (function () { try { return new URLSearchParams(location.search).get("invite"); } catch (e) { return null; } })();
+  function inviteLink(code) { return location.origin + location.pathname + "?invite=" + code; }
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   function newCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
   function nameFromEmail(e) { var n = e.split("@")[0].split(/[._-]/)[0]; return n.charAt(0).toUpperCase() + n.slice(1); }
   // a demo partner's likes, used when an invite is "accepted" in the prototype
   var PARTNER_LIKES = ["romige-gnocchi-met-spinazie", "spaghetti-met-boursin-prosciutto-en-tomaatjes", "halloumiwraps-met-bietenhummus", "burritos-met-gehakt", "tex-mex-wrap-met-kipgehakt-en-ananassalsa", "quinoasalade-met-halloumi-en-mango", "marry-me-bonenstoof-met-ciabatta", "korma-zalm-met-komkommeryoghurt-en-kokosrijst", "ricotta-ravioli-met-spinazie-en-citroen", "snelle-bloemkool-kip-tandoori"];
+  var PRIOS = [["besparen", "Besparen"], ["gezond", "Gezond"], ["snel", "Snel klaar"], ["afwisseling", "Afwisseling"]];
+  function hasPrio(s, k) { return (s.priorities || []).indexOf(k) > -1; }
+  function togglePrio(s, k) { var a = (s.priorities || []).slice(), i = a.indexOf(k); if (i > -1) a.splice(i, 1); else a.push(k); return a; }
+  function prioText(s) { var a = PRIOS.filter(function (o) { return hasPrio(s, o[0]); }).map(function (o) { return o[1].toLowerCase(); }); return a.length ? joinNl(a) : "geen voorkeur"; }
+  // how well a recipe fits your priorities (used to sort suggestions and plan the week)
+  function prioScore(s, r, plan) {
+    var sc = 0;
+    if (hasPrio(s, "gezond") && (r.tags.indexOf("gezond") > -1 || r.tags.indexOf("groente") > -1)) sc += 1;
+    if (hasPrio(s, "snel") && r.minutes <= 20) sc += 1;
+    if (hasPrio(s, "afwisseling")) { var base = r.ingredients[0], same = (plan || []).filter(function (id) { var x = id && rec(id); return x && x.id !== r.id && x.ingredients[0] === base; }).length; sc -= same * 0.8; }
+    return sc;
+  }
+  function PrioChips(p) {
+    return h("div", { className: "chips" }, PRIOS.map(function (o) { return h(C.Chip, { key: o[0], selected: hasPrio(p.s, o[0]), onClick: function () { p.set({ priorities: togglePrio(p.s, o[0]) }); } }, o[1]); }));
+  }
   function partners(s) { return (s.household || []).filter(function (m) { return m.status === "active"; }); }
   function partnerFans(s, id) { return partners(s).filter(function (m) { return m.liked && m.liked[id]; }).map(function (m) { return m.name; }); }
   function fanBadge(s, id) {
@@ -1319,10 +1475,10 @@ var CE_DATA = (function () {
     }
     return h(React.Fragment, null,
       h("h1", { className: "display-l" }, "Vul je code in"),
-      h("p", null, "We hebben een code van 6 cijfers gestuurd naar ", h("b", null, p.email), ".", API ? " Niets ontvangen? Kijk ook in je spam." : ""),
+      h("p", null, "We hebben een code van 6 cijfers gestuurd naar ", h("b", null, p.email), ".", API.demo ? "" : " Niets ontvangen? Kijk ook in je spam."),
       h(C.CodeInput, { value: code, error: !!err, onChange: function (v) { cs[1](v); es[1](null); }, onComplete: check }),
       err ? h("p", { className: "ce-field-msg", role: "alert" }, err) : null,
-      API ? null : h(DemoCode, { code: p.code }),
+      API.demo && API.lastCode(p.email) ? h(DemoCode, { code: API.lastCode(p.email) }) : null,
       h("div", { className: "auth-links" },
         h("button", { type: "button", className: "linkbtn", disabled: wait > 0, onClick: function () { Promise.resolve(p.resend()).then(function () { rs[1](60); cs[1](""); es[1](null); }, function (e) { es[1](e.message || String(e)); }); } }, wait > 0 ? "Nieuwe code over " + wait + " s" : "Stuur een nieuwe code"),
         p.changeEmail ? h("button", { type: "button", className: "linkbtn", onClick: p.changeEmail }, "Ander e-mailadres") : null),
@@ -1339,9 +1495,10 @@ var CE_DATA = (function () {
       h("div", { className: "hero-top" }, h("span", { className: "wordmark" }, "Cheap-eat")),
       h("h1", { className: "display-xl hero-title" }, "Slim eten, goedkoop gehaald."),
       h("div", { className: "hero-panel" },
-        h("p", null, "Plan je week, kook met wat je al hebt en zie meteen waar je hele lijstje het goedkoopst is."),
-        h(C.Button, { variant: "grass", size: "lg", block: true, trailingIcon: "arrow", onClick: function () { upd({ step: "email", mode: "signup" }); } }, "Account aanmaken"),
-        h(C.Button, { variant: "ghost", size: "lg", block: true, className: "btn-on-forest", onClick: function () { upd({ step: "email", mode: "login" }); } }, "Inloggen")));
+        p.invite ? h("div", { className: "invite-hint" }, h(C.Avatar, { name: p.invite.inviterName || "?", tone: "lime" }), h("span", null, h("b", null, (p.invite.inviterName || "Iemand") + " nodigt je uit"), " om samen een huishouden te vormen in Cheap-eat. Maak een account aan of log in.")) :
+          h("p", null, "Plan je week, kook met wat je al hebt en zie meteen waar je hele lijstje het goedkoopst is."),
+        h(C.Button, { variant: "grass", size: "lg", block: true, trailingIcon: "arrow", onClick: function () { upd({ step: "email", mode: "signup", email: (p.invite && p.invite.email) || a.email }); } }, "Account aanmaken"),
+        h(C.Button, { variant: "ghost", size: "lg", block: true, className: "btn-on-forest", onClick: function () { upd({ step: "email", mode: "login", email: (p.invite && p.invite.email) || a.email }); } }, "Inloggen")));
     var back = h(C.IconButton, { icon: "back", label: "Terug", onClick: function () { es[1](null); upd({ step: a.step === "code" ? "email" : a.step === "name" ? "welcome" : "welcome" }); } });
     var body;
     if (a.step === "email") {
@@ -1349,7 +1506,6 @@ var CE_DATA = (function () {
         var e = a.email.trim().toLowerCase();
         if (!EMAIL_RE.test(e)) return es[1]("Vul een geldig e-mailadres in, zoals naam@voorbeeld.nl.");
         es[1](null);
-        if (!API) return upd({ email: e, code: newCode(), step: "code" });
         upd({ busy: true });
         API.sendCode(e, a.mode === "signup").then(function () { upd({ email: e, step: "code", busy: false }); }, function (er) { upd({ busy: false }); es[1](er.message); });
       };
@@ -1358,20 +1514,16 @@ var CE_DATA = (function () {
         h("p", { key: "p" }, a.mode === "signup" ? "Je krijgt een code per e-mail, geen wachtwoord nodig." : "Vul je e-mailadres in. We sturen je een code om in te loggen."),
         h(C.TextField, { key: "e", id: "auth-email", type: "email", inputMode: "email", label: "E-mailadres", placeholder: "naam@voorbeeld.nl", value: a.email, error: err, onChange: function (ev) { upd({ email: ev.target.value }); es[1](null); } }),
         h("div", { key: "c", className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "arrow", loading: !!a.busy, onClick: send }, "Stuur code")),
-        h("button", { key: "s", type: "button", className: "linkbtn center-link", onClick: function () { es[1](null); upd({ mode: a.mode === "signup" ? "login" : "signup" }); } }, a.mode === "signup" ? "Heb je al een account? Inloggen" : "Nog geen account? Maak er een aan")];
+        h("button", { key: "s", type: "button", className: "linkbtn center-link", onClick: function () { es[1](null); upd({ mode: a.mode === "signup" ? "login" : "signup", busy: false }); } }, a.mode === "signup" ? "Heb je al een account? Inloggen" : "Nog geen account? Maak er een aan")];
     } else if (a.step === "code") {
       body = h(CodeStep, { email: a.email, code: a.code, changeEmail: function () { upd({ step: "email" }); },
-        resend: function () { if (API) return API.sendCode(a.email, a.mode === "signup"); upd({ code: newCode() }); },
-        verify: API ? function (code) { return API.verify(a.email, code); } : null,
+        resend: function () { return API.sendCode(a.email, a.mode === "signup"); },
+        verify: function (code) { return API.verify(a.email, code); },
         ok: function () {
-          if (API) {
-            return API.load().then(function (data) {
-              if (data && data.account) p.done(Object.assign({}, data.account, { email: a.email }), "login", data);
-              else upd({ step: "name", name: a.name || nameFromEmail(a.email) });
-            }, function (er) { es[1](er.message); });
-          }
-          if (a.mode === "login") { var known = p.known && p.known.email === a.email ? p.known : null; p.done({ name: known ? known.name : nameFromEmail(a.email), email: a.email }, "login"); }
-          else upd({ step: "name", name: a.name || nameFromEmail(a.email) });
+          return API.load().then(function (data) {
+            if (data && data.account) p.done(Object.assign({}, data.account, { email: a.email }), "login", data);
+            else upd({ step: "name", name: a.name || nameFromEmail(a.email) });
+          }, function (er) { es[1](er.message); });
         } });
     } else {
       body = [
@@ -1399,22 +1551,51 @@ var CE_DATA = (function () {
       a.step === "email" ? h(React.Fragment, null,
         h("p", { className: "small muted" }, "Nu: " + p.s.account.email + ". We sturen een code naar je nieuwe adres om het te bevestigen."),
         h(C.TextField, { id: "set-email", type: "email", inputMode: "email", label: "Nieuw e-mailadres", placeholder: "naam@voorbeeld.nl", value: a.email, error: es[0], onChange: function (e) { upd({ email: e.target.value }); es[1](null); } }),
-        h(C.Button, { block: true, size: "lg", onClick: function () { var e = a.email.trim().toLowerCase(); if (!EMAIL_RE.test(e)) return es[1]("Vul een geldig e-mailadres in."); if (e === p.s.account.email) return es[1]("Dit is al je e-mailadres."); if (!API) return upd({ email: e, code: newCode(), step: "code" }); API.changeEmail(e).then(function () { upd({ email: e, step: "code" }); }, function (er) { es[1](er.message); }); } }, "Stuur code"))
-      : h("div", { className: "stack" }, h(CodeStep, { email: a.email, code: a.code, resend: function () { if (API) return API.changeEmail(a.email); upd({ code: newCode() }); }, verify: API ? function (code) { return API.verifyEmailChange(a.email, code); } : null, changeEmail: function () { upd({ step: "email" }); }, ok: function () { p.save({ email: a.email }); } })));
+        h(C.Button, { block: true, size: "lg", onClick: function () { var e = a.email.trim().toLowerCase(); if (!EMAIL_RE.test(e)) return es[1]("Vul een geldig e-mailadres in."); if (e === p.s.account.email) return es[1]("Dit is al je e-mailadres."); API.changeEmail(e).then(function () { upd({ email: e, step: "code" }); }, function (er) { es[1](er.message); }); } }, "Stuur code"))
+      : h("div", { className: "stack" }, h(CodeStep, { email: a.email, code: a.code, resend: function () { return API.changeEmail(a.email); }, verify: function (code) { return API.verifyEmailChange(a.email, code); }, changeEmail: function () { upd({ step: "email" }); }, ok: function () { p.save({ email: a.email }); } })));
+  }
+  function shareInvite(code, name) {
+    var url = inviteLink(code), text = (name || "Ik") + " nodigt je uit voor Cheap-eat: samen je week plannen en zien welke recepten we allebei lekker vinden.";
+    if (navigator.share) return navigator.share({ title: "Cheap-eat uitnodiging", text: text, url: url }).then(function () { return "shared"; }, function () { return null; });
+    return copyText(url).then(function (ok) { return ok ? "copied" : null; });
+  }
+  function copyText(t) {
+    try { if (navigator.clipboard) return navigator.clipboard.writeText(t).then(function () { return true; }, function () { return false; }); } catch (e) {}
+    return Promise.resolve(false);
   }
   function InviteSheet(p) {
-    var es = useState(""), email = es[0], er = useState(null);
-    function send() {
-      var e = email.trim().toLowerCase();
-      if (!EMAIL_RE.test(e)) return er[1]("Vul een geldig e-mailadres in.");
-      if (e === p.s.account.email) return er[1]("Dit is je eigen e-mailadres.");
-      if ((p.s.household || []).some(function (m) { return m.email === e; })) return er[1]("Deze persoon zit al in je huishouden.");
-      p.invite({ email: e, name: nameFromEmail(e), status: "pending", liked: {} });
+    var st = useState({ email: "", code: p.code || null, busy: false, msg: null }), a = st[0], er = useState(null);
+    function upd(o) { st[1](function (prev) { return Object.assign({}, prev, o); }); }
+    function create() {
+      var e = a.email.trim().toLowerCase();
+      if (e && !EMAIL_RE.test(e)) return er[1]("Vul een geldig e-mailadres in, of laat het leeg.");
+      if (e && e === p.s.account.email) return er[1]("Dit is je eigen e-mailadres.");
+      upd({ busy: true });
+      API.createInvite(e || null, p.s.account.name).then(function (r) { upd({ code: r.code, busy: false }); p.created(); }, function (x) { upd({ busy: false }); er[1](x.message); });
     }
-    return h(Sheet, { label: "Iemand toevoegen", title: "Iemand aan je huishouden toevoegen", onClose: p.close },
-      h("p", { className: "small muted" }, "Voeg je partner of huisgenoot toe met hun e-mailadres. Zodra die de uitnodiging accepteert, zie je welke recepten jullie allebei lekker vinden en plant de app daar rekening mee."),
-      h(C.TextField, { id: "inv-email", type: "email", inputMode: "email", label: "E-mailadres", placeholder: "partner@voorbeeld.nl", value: email, error: er[0], onChange: function (e) { es[1](e.target.value); er[1](null); } }),
-      h(C.Button, { block: true, size: "lg", trailingIcon: "arrow", onClick: send }, "Uitnodiging versturen"));
+    if (!a.code) return h(Sheet, { label: "Iemand uitnodigen", title: "Iemand uitnodigen voor je huishouden", onClose: p.close },
+      h("p", { className: "small muted" }, "Je krijgt een persoonlijke link die je kunt delen via WhatsApp, sms of e-mail. Wie de link opent, maakt een account aan of logt in en is dan gekoppeld. Jullie zien elkaars gelikete recepten, verder niets."),
+      h(C.TextField, { id: "inv-email", type: "email", inputMode: "email", label: "E-mailadres (optioneel)", hint: "Vul je het in, dan ziet die persoon de uitnodiging ook gewoon na het inloggen.", placeholder: "partner@voorbeeld.nl", value: a.email, error: er[0], onChange: function (e) { upd({ email: e.target.value }); er[1](null); } }),
+      h(C.Button, { block: true, size: "lg", trailingIcon: "arrow", loading: a.busy, onClick: create }, "Maak uitnodiging"));
+    var url = inviteLink(a.code);
+    return h(Sheet, { label: "Uitnodiging delen", title: "Deel je uitnodiging", onClose: p.close },
+      h("p", { className: "small muted" }, "Stuur deze link naar je partner of huisgenoot. Hij werkt één keer."),
+      h("div", { className: "invite-link" }, h("span", { className: "num" }, url)),
+      h(C.Button, { block: true, size: "lg", trailingIcon: "arrow", onClick: function () { shareInvite(a.code, p.s.account.name).then(function (r) { if (r === "copied") upd({ msg: "Link gekopieerd. Plak hem in een bericht." }); else if (r === "shared") p.close(); }); } }, navigator.share ? "Deel uitnodiging" : "Kopieer link"),
+      h("a", { className: "ce-btn ce-btn-ghost ce-btn-md ce-btn-block", href: "mailto:" + (a.email || "") + "?subject=" + encodeURIComponent("Doe je mee met Cheap-eat?") + "&body=" + encodeURIComponent("Ik nodig je uit om samen een huishouden te vormen in Cheap-eat. Open deze link op je telefoon:\n\n" + url) }, "Stuur per e-mail"),
+      a.msg ? h("p", { className: "small", role: "status" }, a.msg) : null);
+  }
+  function IncomingInvites(p) {
+    var bs = useState(null), busy = bs[0];
+    if (!p.invites || !p.invites.length) return null;
+    return h("div", { className: "list-gap" }, p.invites.map(function (inv) {
+      return h("div", { key: inv.code, className: "incoming", role: "region", "aria-label": "Uitnodiging van " + inv.inviterName },
+        h("div", { className: "incoming-head" }, h(C.Avatar, { name: inv.inviterName || "?", tone: "lime" }),
+          h("p", null, h("b", null, (inv.inviterName || "Iemand") + " nodigt je uit"), " om samen een huishouden te vormen. Jullie zien dan elkaars gelikete recepten en de app plant daar rekening mee.")),
+        h("div", { className: "tip-actions" },
+          h(C.Button, { size: "sm", variant: "primary", loading: busy === inv.code, onClick: function () { bs[1](inv.code); p.accept(inv.code).then(function () { bs[1](null); }); } }, "Accepteren"),
+          h(C.Button, { size: "sm", variant: "secondary", onClick: function () { p.decline(inv.code); } }, "Nee, bedankt")));
+    }));
   }
 
   /* ---------------- onboarding ---------------- */
@@ -1433,9 +1614,9 @@ var CE_DATA = (function () {
     var body = step === 1 ? [
       h("h1", { key: "t", className: "display-l" }, "Met hoeveel personen eet je?"),
       h("div", { key: "s", className: "center-row" }, h(C.Stepper, { value: s.persons, onChange: function (v) { set({ persons: v }); }, unit: "pers.", label: "Aantal personen" })),
-      h("h2", { key: "h", className: "heading" }, "Wat vind je het belangrijkst?"),
-      h("div", { key: "c", className: "chips" }, [["besparen", "Besparen"], ["gezond", "Gezond"], ["snel", "Snel klaar"], ["afwisseling", "Afwisseling"]].map(function (o) {
-        return h(C.Chip, { key: o[0], selected: s.priority === o[0], onClick: function () { set({ priority: o[0] }); } }, o[1]); }))
+      h("h2", { key: "h", className: "heading" }, "Wat vind je belangrijk?"),
+      h("p", { key: "hp", className: "small" }, "Kies er een of meer. Je kunt dit later aanpassen."),
+      h(PrioChips, { key: "c", s: s, set: set })
     ] : [
       h("h1", { key: "t", className: "display-l" }, "Wat eet je graag?"),
       h("div", { key: "c", className: "chips" }, [["alles", "Alles"], ["flexi", "Flexitarisch"], ["vega", "Vegetarisch"]].map(function (o) {
@@ -1478,13 +1659,14 @@ var CE_DATA = (function () {
     var total = useMemo(function () { return Object.keys(n).length ? rank(n, s.bio)[0].total : 0; }, [n, s.bio]);
     var sugg = useMemo(function () { return suggestions(s, day).slice(0, 3); }, [s.plan, day, s.persons, s.bio, s.liked, s.disliked, s.diet, s.custom]);
     var coach = null;
-    if (r && s.priority === "besparen") {
+    if (r && hasPrio(s, "besparen")) {
       var ex = extraFor(s.plan, day, id, s.persons, s.bio), ni = newIngs(s.plan, day, id), alt = sugg[0];
       if (alt && !s.kept[day + id] && ni.fresh.length >= 3 && ex - alt.extra >= 2) coach = { ex: ex, ni: ni, alt: alt };
     }
     function setDay(rid) { set({ plan: withDay(s.plan, day, rid) }); }
     return h("div", { className: "screen" },
       h("header", { className: "top" }, h("div", null, h(Eyebrow, null, "Week 42 · " + s.persons + " personen"), h("h1", { className: "display-l" }, "Jouw week"))),
+      h(IncomingInvites, { invites: s.incoming, accept: p.acceptInvite, decline: p.declineInvite }),
       !s.testDone ? h(TestCard, { onStart: p.startTest }) : null,
       h(C.BudgetMeter, { spent: total, budget: s.budget, label: "Weekbudget" }),
       h(C.WeekStrip, { selected: day, dates: DATES, onSelect: function (d) { set({ day: d }); }, planned: s.plan.map(Boolean), notes: DAYS.map(function (_, i) { return !!(s.notes || {})[i]; }) }),
@@ -1848,18 +2030,33 @@ var CE_DATA = (function () {
         h("div", { className: "ce-group" },
           h("div", { className: "member" }, h(C.Avatar, { name: s.account ? s.account.name : "?", tone: "grass" }), h("div", { className: "member-body" }, h("b", null, (s.account ? s.account.name : "Jij") + " (jij)"), h("small", null, Object.keys(s.liked).length + " gelikete recepten"))),
           (s.household || []).map(function (m) {
-            var both = m.status === "active" ? allRecipes(s).filter(function (r) { return m.liked[r.id] && s.liked[r.id]; }).length : 0;
-            return h("div", { key: m.email, className: "member" }, h(C.Avatar, { name: m.name }),
-              h("div", { className: "member-body" }, h("b", null, m.name), h("small", null, m.status === "active" ? Object.keys(m.liked).length + " gelikete recepten · " + both + " samen" : "Uitnodiging verstuurd naar " + m.email),
-                m.status === "pending" ? h("button", { type: "button", className: "linkbtn", onClick: function () { p.accept(m.email); } }, "Demo: laat " + m.name + " accepteren") : null),
-              m.status === "active" ? h(C.Badge, { tone: "restje", icon: "check" }, "Gekoppeld") : h(C.Badge, null, "Wacht"),
-              h(C.IconButton, { icon: "x", label: m.name + " uit huishouden halen", onClick: function () { p.removeMember(m.email); } }));
+            if (m.status === "active") {
+              var both = allRecipes(s).filter(function (r) { return m.liked[r.id] && s.liked[r.id]; }).length;
+              return h("div", { key: m.id, className: "member" }, h(C.Avatar, { name: m.name }),
+                h("div", { className: "member-body" }, h("b", null, m.name), h("small", null, Object.keys(m.liked).filter(function (k) { return rec(k); }).length + " gelikete recepten · " + both + " samen")),
+                h(C.Badge, { tone: "restje", icon: "check" }, "Gekoppeld"),
+                h(C.IconButton, { icon: "x", label: m.name + " uit huishouden halen", onClick: function () { cf[1]("m:" + m.id); } }));
+            }
+            var who = m.email || "Nog niet gedeeld";
+            return h("div", { key: m.code, className: "member" }, h(C.Avatar, { name: m.email || "?", tone: "oker" }),
+              h("div", { className: "member-body" }, h("b", null, m.email ? nameFromEmail(m.email) : "Uitnodiging"), h("small", null, "Wacht op acceptatie" + (m.email ? " · " + who : "")),
+                h("div", { className: "member-links" },
+                  h("button", { type: "button", className: "linkbtn", onClick: function () { p.share(m.code); } }, "Link delen"),
+                  h("button", { type: "button", className: "linkbtn", onClick: function () { p.cancelInvite(m.code); } }, "Intrekken"),
+                  API.demo ? h("button", { type: "button", className: "linkbtn", onClick: function () { p.demoAccept(m.code); } }, "Demo: laat accepteren") : null)),
+              h(C.Badge, null, "Wacht"));
           })),
-        h(C.Button, { variant: "secondary", block: true, onClick: p.invite }, "+ Iemand toevoegen"),
+        cf[0] && cf[0].indexOf("m:") === 0 ? h("div", { className: "confirm", role: "alert" }, h("span", null, "Huishouden met " + ((s.household || []).filter(function (m) { return "m:" + m.id === cf[0]; })[0] || {}).name + " verbreken?"),
+          h("div", { className: "confirm-actions" }, h(C.Button, { size: "sm", variant: "secondary", onClick: function () { cf[1](null); } }, "Annuleren"), h(C.Button, { size: "sm", variant: "primary", onClick: function () { var id = cf[0].slice(2); cf[1](null); p.removeMember(id); } }, "Verbreken"))) : null,
+        h(IncomingInvites, { invites: s.incoming, accept: p.acceptInvite, decline: p.declineInvite }),
+        h(C.Button, { variant: "secondary", block: true, onClick: p.invite }, "+ Iemand uitnodigen"),
         partners(s).length ? h("p", { className: "small muted" }, "Recepten die " + joinNl(partners(s).map(function (m) { return m.name; })) + " lekker vindt, komen hoger in je suggesties, swipe-stapel en weekplanning.") : null),
-      h(Section, { title: "Wat vind je het belangrijkst?" }, h("div", { className: "chips" }, [["besparen", "Besparen"], ["gezond", "Gezond"], ["snel", "Snel klaar"], ["afwisseling", "Afwisseling"]].map(function (o) {
-        return h(C.Chip, { key: o[0], selected: s.priority === o[0], onClick: function () { set({ priority: o[0] }); } }, o[1]); })),
-        h("p", { className: "small muted" }, s.priority === "besparen" ? "De bespaarcoach geeft wisseltips als een recept veel nieuwe ingrediënten kost." : "Bespaartips staan uit. Kies Besparen om ze aan te zetten.")),
+      h(Section, { title: "Wat vind je belangrijk?", aside: h("span", { className: "small muted" }, "meerdere kan") }, h(PrioChips, { s: s, set: set }),
+        h("ul", { className: "prio-notes" },
+          h("li", null, hasPrio(s, "besparen") ? "Besparen: de bespaarcoach geeft wisseltips als een recept veel nieuwe ingrediënten kost." : "Besparen staat uit: geen wisseltips van de bespaarcoach."),
+          hasPrio(s, "gezond") ? h("li", null, "Gezond: recepten met veel groente komen hoger.") : null,
+          hasPrio(s, "snel") ? h("li", null, "Snel klaar: recepten van 20 minuten of minder komen hoger.") : null,
+          hasPrio(s, "afwisseling") ? h("li", null, "Afwisseling: niet elke dag pasta of rijst.") : null)),
       h(Section, { title: "Eten" }, h("div", { className: "chips" }, [["alles", "Alles"], ["flexi", "Flexitarisch"], ["vega", "Vegetarisch"]].map(function (o) {
         return h(C.Chip, { key: o[0], selected: s.diet === o[0], onClick: function () { set({ diet: o[0] }); } }, o[1]); })),
         h(C.Toggle, { label: "Alleen biologisch", description: "Vergelijk alleen bio-producten", checked: s.bio, onChange: function (v) { set({ bio: v }); } })),
@@ -1869,7 +2066,7 @@ var CE_DATA = (function () {
         h("div", { className: "ce-group" },
           h("button", { type: "button", className: "setrow", onClick: function () { set({ sheet: { type: "editName" } }); } }, h("span", null, "Naam", h("small", null, s.account ? s.account.name : "")), h(C.Icon, { name: "chevron", size: 20 })),
           h("button", { type: "button", className: "setrow", onClick: function () { set({ sheet: { type: "editEmail" } }); } }, h("span", null, "E-mailadres", h("small", null, s.account ? s.account.email : "")), h(C.Icon, { name: "chevron", size: 20 })),
-          h("button", { type: "button", className: "setrow", onClick: function () { set({ screen: "onboarding" }); } }, h("span", null, "Voorkeuren opnieuw instellen", h("small", null, "Personen, prioriteit, dieet, budget")), h(C.Icon, { name: "chevron", size: 20 }))),
+          h("button", { type: "button", className: "setrow", onClick: function () { set({ screen: "onboarding" }); } }, h("span", null, "Voorkeuren opnieuw instellen", h("small", null, "Personen, prioriteiten, dieet, budget")), h(C.Icon, { name: "chevron", size: 20 }))),
         h(C.Button, { variant: "ghost", block: true, onClick: p.logout }, "Uitloggen"),
         cf[0] === "account" ? h("div", { className: "confirm", role: "alert" }, h("span", null, "Je account en al je gegevens verwijderen?"),
           h("div", { className: "confirm-actions" }, h(C.Button, { size: "sm", variant: "secondary", onClick: function () { cf[1](null); } }, "Annuleren"), h(C.Button, { size: "sm", variant: "primary", onClick: p.deleteAccount }, "Verwijderen")))
@@ -1972,10 +2169,17 @@ var CE_DATA = (function () {
   }
 
   /* ---------------- App shell ---------------- */
-  function load() { if (API) return null; try { return JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { return null; } }
-  var SYNC = ["account", "custom", "liked", "disliked", "notes", "customIngs", "household", "plan", "persons", "priority", "diet", "bio", "budget", "testDone", "checked", "kept"];
+  var SYNC = ["account", "custom", "liked", "disliked", "notes", "customIngs", "plan", "persons", "priorities", "diet", "bio", "budget", "testDone", "checked", "kept"];
+  function defaults() {
+    return { persons: 2, priorities: ["besparen"], diet: "alles", bio: false, budget: 60, day: 1, notes: {}, customIngs: {},
+      plan: ["ricotta-ravioli-met-spinazie-en-citroen", "kip-in-rendangsaus-met-rijst-en-boontjes", null, "spaghetti-met-boursin-prosciutto-en-tomaatjes", "romige-gnocchi-met-spinazie", null, null],
+      liked: {}, disliked: {}, checked: {}, kept: {}, custom: [], testDone: false, household: [], incoming: [],
+      tab: "week", sheet: null, detail: null, adding: false, editing: null, author: null, test: null, recMode: "swipe", likedWho: "mine",
+      wiz: { budget: 60, days: 5, prefs: {}, votes: {} } };
+  }
   function restore(data) {
     var o = {}; SYNC.forEach(function (k) { if (data && data[k] !== undefined) o[k] = data[k]; });
+    if (data && !data.priorities && data.priority) o.priorities = [data.priority];
     (o.custom || []).forEach(function (c) { REG[c.id] = prep(c); });
     return o;
   }
@@ -1991,39 +2195,43 @@ var CE_DATA = (function () {
       h("p", { className: "small muted" }, "Tip: kies daarna in Safari \u201cDeel \u2192 Zet op beginscherm\u201d, dan staat Cheap-eat als app op je telefoon."));
   }
   function App() {
-    var st = useState(function () {
-      var base = { screen: API ? "loading" : "auth", account: null, household: [], notes: { 5: "Eten we buiten de deur" }, tab: "week", persons: 2, priority: "besparen", diet: "alles", bio: false, budget: 60, day: 1,
-        plan: ["ricotta-ravioli-met-spinazie-en-citroen", "kip-in-rendangsaus-met-rijst-en-boontjes", null, "spaghetti-met-boursin-prosciutto-en-tomaatjes", "romige-gnocchi-met-spinazie", null, null],
-        liked: {}, disliked: {}, checked: {}, kept: {}, custom: [], testDone: false,
-        sheet: null, detail: null, adding: false, test: null, toast: null,
-        wiz: { budget: 60, days: 5, prefs: {}, votes: {} } };
-      var saved = load();
-      if (saved && saved.custom) { saved.custom.forEach(function (c) { REG[c.id] = prep(c); }); base.custom = saved.custom; }
-      if (saved && saved.account) { base.account = saved.account; base.household = saved.household || []; base.liked = saved.liked || {}; base.notes = saved.notes || {}; base.customIngs = saved.customIngs || {}; base.screen = "app"; }
-      base.known = saved && saved.known || null;
-      return base;
-    });
+    var st = useState(function () { return Object.assign(defaults(), { screen: "loading", account: null, invite: null, toast: null }); });
     var s = st[0]; function set(o) { st[1](function (prev) { return Object.assign({}, prev, o); }); }
-    // real backend: restore an existing session on start
+    function refreshHousehold() {
+      return Promise.all([API.household(), API.myInvites()]).then(function (r) {
+        var hh = r[0].partners.map(function (m) { return Object.assign({ status: "active" }, m); }).concat(r[0].pending.map(function (i) { return Object.assign({ status: "pending" }, i); }));
+        var inc = r[1];
+        if (s.invite && !inc.some(function (i) { return i.code === s.invite.code; })) inc = [s.invite].concat(inc);
+        set({ household: hh, incoming: inc });
+        return hh;
+      }).catch(function () {});
+    }
+    function enter(data, email, how) {
+      var acc = data && data.account ? Object.assign({}, data.account, { email: email }) : { name: nameFromEmail(email), email: email };
+      set(Object.assign(defaults(), data ? restore(data) : {}, { account: acc, screen: data && data.account ? "app" : "onboarding" }, how ? { toast: how === "signup" ? "Account aangemaakt" : "Welkom terug, " + acc.name } : {}));
+    }
+    // start: look up an invite link, then restore the session
     useEffect(function () {
-      if (!API) return;
-      API.session().then(function (sess) {
-        if (!sess) return set({ screen: "auth" });
-        return API.load().then(function (data) {
-          var email = sess.user.email;
-          if (data && data.account) set(Object.assign(restore(data), { account: Object.assign({}, data.account, { email: email }), screen: "app" }));
-          else set({ account: { name: nameFromEmail(email), email: email }, screen: "onboarding" });
+      var inv = INVITE_PARAM ? API.getInvite(INVITE_PARAM).catch(function () { return null; }) : Promise.resolve(null);
+      inv.then(function (i) {
+        if (INVITE_PARAM && !i) set({ toast: "Deze uitnodiging is niet meer geldig." });
+        if (i) set({ invite: i });
+        try { if (INVITE_PARAM) history.replaceState(null, "", location.pathname); } catch (e) {}
+        return API.session().then(function (sess) {
+          if (!sess) return set({ screen: "auth" });
+          return API.load().then(function (data) { enter(data, sess.user.email); });
         });
       }).catch(function () { set({ screen: "auth", toast: "Kon geen verbinding maken. Probeer het opnieuw." }); });
     }, []);
-    // real backend: save your data (debounced) whenever it changes
+    // after logging in: fetch household + invites (and again when you open Profiel or Recepten)
+    useEffect(function () { if (s.account && (s.screen === "app" || s.screen === "onboarding")) refreshHousehold(); }, [s.account && s.account.email, s.screen, s.tab]);
+    // save your data (debounced) whenever it changes
     var syncDeps = SYNC.map(function (k) { return s[k]; });
     useEffect(function () {
-      if (!API || !s.account || s.screen === "auth" || s.screen === "loading") return;
-      var t = setTimeout(function () { var d = {}; SYNC.forEach(function (k) { d[k] = s[k]; }); API.save(d).catch(function () { set({ toast: "Opslaan mislukt. Controleer je internet." }); }); }, 700);
+      if (!s.account || s.screen === "auth" || s.screen === "loading") return;
+      var t = setTimeout(function () { var d = {}; SYNC.forEach(function (k) { d[k] = s[k]; }); API.save(d).catch(function (e) { set({ toast: e.message || "Opslaan mislukt. Controleer je internet." }); }); }, 600);
       return function () { clearTimeout(t); };
     }, syncDeps.concat([s.screen]));
-    useEffect(function () { if (API) return; try { localStorage.setItem(STORE_KEY, JSON.stringify({ custom: s.custom, account: s.account, household: s.household, liked: s.liked, notes: s.notes, customIngs: s.customIngs, known: s.account || s.known })); } catch (e) {} }, [s.custom, s.account, s.household, s.liked, s.notes, s.customIngs]);
     useEffect(function () { if (!s.toast) return; var t = setTimeout(function () { set({ toast: null }); }, 2600); return function () { clearTimeout(t); }; }, [s.toast]);
     var n = useMemo(function () { return need(s.plan, s.persons); }, [s.plan, s.persons, s.custom]);
     var ranked = useMemo(function () { return Object.keys(n).length ? rank(n, s.bio) : null; }, [n, s.bio]);
@@ -2033,6 +2241,13 @@ var CE_DATA = (function () {
       if (d > -1) plan[d] = id;
       set({ plan: plan, sheet: null, day: d > -1 ? d : s.day, toast: d > -1 ? rec(id).title + " staat op " + DAYS[d].toLowerCase() : "Uit je week gehaald" });
     }
+    function acceptInvite(code) {
+      return API.acceptInvite(code).then(function () {
+        set({ invite: null });
+        return refreshHousehold().then(function (hh) { var n = 1 + (hh || []).filter(function (m) { return m.status === "active"; }).length; set({ persons: Math.max(s.persons, n), incoming: s.incoming.filter(function (i) { return i.code !== code; }), toast: "Jullie huishouden is gekoppeld" }); });
+      }, function (e) { set({ toast: e.message }); });
+    }
+    function declineInvite(code) { API.declineInvite(code).catch(function () {}); set({ invite: null, incoming: s.incoming.filter(function (i) { return i.code !== code; }), toast: "Uitnodiging afgewezen" }); }
     function startTest() { set({ test: 0, detail: null, wiz: Object.assign({}, s.wiz, { votes: {} }) }); }
     function removeCustom(id) {
       set({ custom: s.custom.filter(function (c) { return c.id !== id; }), plan: s.plan.map(function (x) { return x === id ? null : x; }), liked: setKey(s.liked, id, false), toast: "Recept verwijderd" });
@@ -2047,25 +2262,26 @@ var CE_DATA = (function () {
     var body;
     if (window.CE_GATE) return h(DesktopGate);
     if (s.screen === "loading") body = h("div", { className: "loading" }, h("span", { className: "wordmark" }, "Cheap-eat"), h("span", { className: "ce-btn-spin", "aria-label": "Laden" }));
-    else if (s.screen === "auth") body = h("div", { className: "scroll", key: "auth" }, h(Auth, { known: s.known, done: function (acc, how, data) { set(Object.assign(data ? restore(data) : {}, { account: acc, screen: how === "signup" ? "onboarding" : "app", toast: how === "signup" ? "Account aangemaakt" : "Welkom terug, " + acc.name })); } }));
+    else if (s.screen === "auth") body = h("div", { className: "scroll", key: "auth" }, h(Auth, { invite: s.invite, done: function (acc, how, data) { if (data) return enter(data, acc.email, how); set(Object.assign(defaults(), { account: acc, screen: "onboarding", toast: "Account aangemaakt" })); } }));
     else if (s.screen === "onboarding") body = h(Onboarding, { s: s, set: set, startStep: 1, done: function () { set({ screen: "app" }); } });
     else if (s.test != null) body = h("div", { className: "scroll", key: "test" }, h(Smaaktest, { s: s, set: set }));
     else if (s.adding || s.editing) body = h("div", { className: "scroll", key: "add" + (s.editing || "") }, h(AddRecipe, { initial: s.editing ? rec(s.editing) : null, customIngs: s.customIngs, save: saveCustom, close: function () { set({ adding: false, editing: null }); } }));
     else if (s.detail) body = h("div", { className: "scroll", key: "d" + s.detail }, h(RecipeDetail, { s: s, set: set, id: s.detail, pick: pick, openAuthor: openAuthor, edit: function (id) { set({ editing: id }); }, close: function () { set({ detail: null, author: s.backTo || null, backTo: null }); } }));
     else if (s.author) body = h("div", { className: "scroll", key: "a" + s.author }, h(AuthorProfile, { s: s, set: set, id: s.author, open: function (id) { set({ detail: id, author: null, backTo: s.author }); }, pick: pick, close: function () { set({ author: null, detail: s.backDetail || null, backDetail: null }); } }));
     else body = h(React.Fragment, null,
-      h("div", { className: "scroll", key: s.tab }, s.tab === "week" ? h(WeekTab, { s: s, set: set, open: function (id) { set({ detail: id }); }, startTest: startTest })
+      h("div", { className: "scroll", key: s.tab }, s.tab === "week" ? h(WeekTab, { s: s, set: set, open: function (id) { set({ detail: id }); }, startTest: startTest, acceptInvite: acceptInvite, declineInvite: declineInvite })
         : s.tab === "recepten" ? h(RecipesTab, { s: s, set: set, open: function (id) { set({ detail: id }); }, pick: pick, add: function () { set({ adding: true }); }, startTest: startTest })
         : s.tab === "lijstje" ? h(ListTab, { s: s, set: set, compare: function () { set({ sheet: { type: "compare" } }); } })
         : h(ProfileTab, { s: s, set: set, startTest: startTest, open: function (id) { set({ detail: id }); }, add: function () { set({ adding: true }); }, remove: removeCustom, edit: function (id) { set({ editing: id }); }, gotoLiked: function () { set({ tab: "recepten", recMode: "liked" }); },
           invite: function () { set({ sheet: { type: "invite" } }); },
-          accept: function (email) { set({ household: s.household.map(function (m) { if (m.email !== email) return m; var lk = {}; PARTNER_LIKES.forEach(function (id) { lk[id] = 1; }); return Object.assign({}, m, { status: "active", liked: lk }); }), persons: Math.max(s.persons, 1 + s.household.length), toast: "Huishouden gekoppeld" }); },
-          removeMember: function (email) { set({ household: s.household.filter(function (m) { return m.email !== email; }), toast: "Uit je huishouden gehaald" }); },
-          logout: function () { if (API) API.signOut(); set({ known: s.account, account: null, screen: "auth", tab: "week", detail: null, sheet: null }); },
+          share: function (code) { set({ sheet: { type: "invite", code: code } }); },
+          cancelInvite: function (code) { API.cancelInvite(code).then(refreshHousehold).then(function () { set({ toast: "Uitnodiging ingetrokken" }); }); },
+          demoAccept: function (code) { API.demoAccept(code, PARTNER_LIKES).then(refreshHousehold).then(function (hh) { set({ persons: Math.max(s.persons, 1 + hh.filter(function (m) { return m.status === "active"; }).length), toast: "Huishouden gekoppeld" }); }); },
+          acceptInvite: acceptInvite, declineInvite: declineInvite,
+          removeMember: function (id) { API.removePartner(id).then(refreshHousehold).then(function () { set({ toast: "Huishouden verbroken" }); }, function (e) { set({ toast: e.message }); }); },
+          logout: function () { API.signOut().then(function () { set(Object.assign(defaults(), { account: null, invite: null, screen: "auth", toast: "Je bent uitgelogd" })); }); },
           deleteAccount: function () {
-            var wipe = function () { try { localStorage.removeItem(STORE_KEY); } catch (e) {} set({ account: null, known: null, household: [], liked: {}, disliked: {}, custom: [], notes: {}, screen: "auth", tab: "week", toast: "Account verwijderd" }); };
-            if (!API) return wipe();
-            API.deleteAccount().then(wipe, function (er) { set({ toast: er.message }); });
+            API.deleteAccount().then(function () { set(Object.assign(defaults(), { account: null, invite: null, screen: "auth", toast: "Account verwijderd" })); }, function (er) { set({ toast: er.message }); });
           } })),
       h("div", { className: "dock" },
         ranked ? h(C.CheapestBar, { store: ranked[0].store.name, total: ranked[0].total, saving: ranked[1].total - ranked[0].total, onClick: function () { set({ sheet: { type: "compare" } }); } }) : null,
@@ -2074,7 +2290,7 @@ var CE_DATA = (function () {
     return h("div", { className: "phone" + (s.screen === "onboarding" ? " phone-hero" : "") }, body,
       s.sheet && s.sheet.type === "editName" ? h(EditNameSheet, { s: s, close: function () { set({ sheet: null }); }, save: acct }) : null,
       s.sheet && s.sheet.type === "editEmail" ? h(EditEmailSheet, { s: s, close: function () { set({ sheet: null }); }, save: acct }) : null,
-      s.sheet && s.sheet.type === "invite" ? h(InviteSheet, { s: s, close: function () { set({ sheet: null }); }, invite: function (m) { set({ household: (s.household || []).concat([m]), sheet: null, toast: "Uitnodiging verstuurd naar " + m.email }); } }) : null,
+      s.sheet && s.sheet.type === "invite" ? h(InviteSheet, { s: s, code: s.sheet.code, close: function () { set({ sheet: null }); }, created: refreshHousehold }) : null,
       s.sheet && s.sheet.type === "compare" ? h(CompareSheet, { s: s, set: set, close: function () { set({ sheet: null }); } }) : null,
       s.sheet && s.sheet.type === "day" ? h(DaySheet, { s: s, id: s.sheet.id, close: function () { set({ sheet: null }); }, choose: function (d) { choose(s.sheet.id, d); } }) : null,
       s.toast ? h("div", { className: "toast", role: "status" }, h(C.Icon, { name: "check", size: 18 }), s.toast) : null);
