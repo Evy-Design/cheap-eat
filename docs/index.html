@@ -1,0 +1,2088 @@
+<!doctype html>
+<html lang="nl" class="web">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2db34a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cheap-eat">
+<meta name="description" content="Plan je week, kook met wat je al hebt en zie waar je hele boodschappenlijst het goedkoopst is.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Cheap-eat</title>
+</head>
+<body>
+
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,100&family=Instrument+Sans:wght@400;500;600&display=swap");
+
+body { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 24px; background: var(--surface); color: var(--ink); -webkit-font-smoothing: antialiased; }
+.ce-display { font-family: var(--font-display); font-variation-settings: "SOFT" 100; }
+.ce-num { font-variant-numeric: tabular-nums; }
+.ce-pad { padding: var(--space-4); }
+.ce-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; padding: var(--space-4); }
+.ce-col { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); max-width: 420px; }
+.ce-focus:focus-visible, .ce-btn:focus-visible, .ce-chip:focus-visible, .ce-iconbtn:focus-visible, .ce-tab:focus-visible, .ce-day:focus-visible, .ce-check:focus-visible, .ce-toggle:focus-visible, .ce-bar:focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 2px;
+}
+
+/* Button */
+.ce-btn { font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); border: 0; border-radius: var(--radius-pill); cursor: pointer; white-space: nowrap; transition: transform .12s ease, background-color .12s ease; }
+.ce-btn:active { transform: scale(.97); }
+.ce-btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+.ce-btn-sm { height: 36px; padding: 0 var(--space-4); font-size: 14px; }
+.ce-btn-md { height: 48px; padding: 0 var(--space-5); font-size: 16px; }
+.ce-btn-lg { height: 60px; padding: 0 var(--space-5); font-size: 17px; }
+.ce-btn-block { display: flex; width: 100%; }
+.ce-btn-primary { background: var(--forest); color: var(--on-forest); }
+.ce-btn-grass { background: var(--grass); color: var(--on-grass); }
+.ce-btn-secondary { background: var(--surface-sunken); color: var(--ink); }
+.ce-btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.ce-btn-trail { justify-content: space-between; padding-right: 6px; }
+.ce-btn-trail .ce-btn-orb { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px currentColor; opacity: .9; }
+.ce-btn-lg.ce-btn-trail .ce-btn-orb { width: 48px; height: 48px; }
+.ce-btn-spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: ce-spin .7s linear infinite; }
+@keyframes ce-spin { to { transform: rotate(360deg); } }
+
+.ce-iconbtn { width: 44px; height: 44px; border-radius: 50%; border: 0; display: inline-grid; place-items: center; cursor: pointer; background: var(--surface-raised); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.ce-iconbtn-filled { background: var(--forest); color: var(--on-forest); box-shadow: none; }
+.ce-iconbtn-grass { background: var(--grass); color: var(--on-grass); box-shadow: none; }
+.ce-iconbtn-tomato { background: var(--surface-raised); color: var(--tomato); }
+.ce-iconbtn-lg { width: 64px; height: 64px; }
+
+/* Chip */
+.ce-chip { font: inherit; font-size: 15px; font-weight: 500; height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-pill); border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2); background: var(--surface-sunken); color: var(--ink); }
+.ce-chip[aria-pressed="true"] { background: var(--forest); color: var(--on-forest); }
+
+/* Badge */
+.ce-badge { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 12px; line-height: 16px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink); white-space: nowrap; }
+.ce-badge-bio { background: var(--oker-soft); color: var(--oker); }
+.ce-badge-restje { background: var(--lime); color: var(--on-lime); }
+.ce-badge-nieuw { background: var(--tomato-soft); color: var(--tomato); }
+.ce-badge-save { background: var(--surface-raised); color: var(--save); box-shadow: inset 0 0 0 1.5px var(--line); }
+.ce-badge-grass { background: var(--grass); color: var(--on-grass); }
+
+/* Stepper */
+.ce-stepper { display: inline-flex; align-items: center; gap: var(--space-2); background: var(--surface-sunken); border-radius: var(--radius-pill); padding: 4px; }
+.ce-stepper .ce-iconbtn { width: 36px; height: 36px; box-shadow: none; }
+.ce-stepper-val { min-width: 64px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Toggle */
+.ce-toggle { width: 52px; height: 32px; border-radius: var(--radius-pill); border: 0; padding: 3px; cursor: pointer; background: var(--surface-sunken); box-shadow: inset 0 0 0 1.5px var(--line); display: inline-flex; transition: background-color .15s; }
+.ce-toggle::after { content: ""; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-raised); box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .15s; }
+.ce-toggle[aria-checked="true"] { background: var(--grass); box-shadow: none; }
+.ce-toggle[aria-checked="true"]::after { transform: translateX(20px); }
+.ce-setting { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface-raised); border-radius: var(--radius-md); }
+.ce-setting small { display: block; color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+
+/* Search */
+.ce-search { display: flex; align-items: center; gap: var(--space-2); height: 48px; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink-muted); }
+.ce-search input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); outline: none; }
+.ce-search:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* WeekStrip */
+.ce-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: var(--space-3); background: var(--surface-raised); border-radius: var(--radius-lg); }
+.ce-day { font: inherit; border: 0; background: transparent; color: var(--ink); border-radius: var(--radius-pill); padding: 10px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.ce-day small { font-size: 12px; line-height: 16px; color: var(--ink-muted); text-transform: lowercase; }
+.ce-day b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ce-day i { width: 6px; height: 6px; border-radius: 50%; background: transparent; }
+.ce-day[data-planned="true"] i { background: var(--grass); }
+.ce-day[aria-pressed="true"] { background: var(--grass); color: var(--on-grass); }
+.ce-day[aria-pressed="true"] small { color: var(--on-grass); }
+.ce-day[aria-pressed="true"] i { background: var(--on-grass); }
+
+/* Dish illustration */
+.ce-dish { display: block; width: 100%; height: auto; }
+
+/* RecipeCard */
+.ce-rcard { display: flex; gap: var(--space-3); align-items: center; padding: var(--space-3); background: var(--surface-raised); border-radius: var(--radius-lg); color: inherit; text-decoration: none; }
+.ce-rcard-art { width: 84px; height: 84px; flex: none; border-radius: var(--radius-md); background: var(--lime); overflow: hidden; }
+.ce-rcard-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ce-rcard-title { font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-size: 19px; line-height: 23px; font-weight: 600; }
+.ce-rcard-meta { font-size: 14px; line-height: 20px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.ce-rcard-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.ce-rcard-tall { flex-direction: column; align-items: stretch; width: 200px; }
+.ce-rcard-tall .ce-rcard-art { width: 100%; height: 150px; }
+
+/* SwipeCard */
+.ce-swipe { position: relative; background: var(--surface-raised); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card); user-select: none; touch-action: none; }
+.ce-swipe-art { aspect-ratio: 1 / 0.7; overflow: hidden; background: var(--grass); position: relative; }
+.ce-swipe-body { padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); }
+.ce-swipe-title { font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-size: 26px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; }
+.ce-swipe-meta { display: flex; gap: var(--space-4); color: var(--ink-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.ce-swipe-stamp { position: absolute; top: var(--space-4); padding: 6px 14px; border-radius: var(--radius-pill); font-weight: 600; font-size: 15px; opacity: 0; transition: opacity .1s; }
+.ce-swipe-stamp-like { left: var(--space-4); background: var(--forest); color: var(--on-forest); }
+.ce-swipe-stamp-nope { right: var(--space-4); background: var(--surface-raised); color: var(--tomato); }
+.ce-swipe-actions { display: flex; justify-content: center; gap: var(--space-5); padding: var(--space-4); }
+
+/* TipCard (bespaarcoach) */
+.ce-tip { border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); background: var(--lime); color: var(--on-lime); }
+.ce-tip-warn { background: var(--tomato-soft); color: var(--ink); }
+.ce-tip-head { display: flex; gap: var(--space-2); align-items: flex-start; }
+.ce-tip-head p { margin: 0; }
+.ce-tip-head svg { flex: none; margin-top: 2px; }
+.ce-tip-amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ce-tip-warn .ce-tip-amt { color: var(--tomato); }
+.ce-tip-actions { display: flex; gap: var(--space-2); }
+.ce-tip .ce-btn-secondary { background: rgba(255,255,255,.55); color: var(--on-lime); }
+.ce-tip-warn .ce-btn-secondary { background: var(--surface-raised); color: var(--ink); }
+
+/* CheapestBar */
+.ce-bar { font: inherit; width: 100%; border: 0; cursor: pointer; text-align: left; display: flex; align-items: center; gap: var(--space-3); padding: 8px 8px 8px var(--space-5); min-height: 64px; border-radius: var(--radius-pill); background: var(--grass); color: var(--on-grass); box-shadow: var(--shadow-card); }
+.ce-bar-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ce-bar-text small { font-size: 13px; line-height: 16px; font-weight: 500; }
+.ce-bar-text b { font-size: 17px; line-height: 22px; font-weight: 600; }
+.ce-bar-price { font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ce-bar-orb { width: 48px; height: 48px; border-radius: 50%; background: var(--forest); color: var(--on-forest); display: grid; place-items: center; flex: none; }
+
+/* StoreRow */
+.ce-store { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface-raised); border-radius: var(--radius-md); }
+.ce-store-rank { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 14px; background: var(--surface-sunken); flex: none; }
+.ce-store[data-best="true"] { box-shadow: inset 0 0 0 2px var(--grass); }
+.ce-store[data-best="true"] .ce-store-rank { background: var(--grass); color: var(--on-grass); }
+.ce-store-name { flex: 1; min-width: 0; }
+.ce-store-name small { display: block; color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+.ce-store-total { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.ce-store-total small { display: block; font-weight: 500; font-size: 13px; line-height: 18px; color: var(--tomato); }
+.ce-store[data-best="true"] .ce-store-total small { color: var(--save); }
+
+/* ListItem */
+.ce-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface-raised); }
+.ce-item + .ce-item { border-top: 1px solid var(--line); }
+.ce-check { width: 26px; height: 26px; border-radius: var(--radius-sm); border: 0; box-shadow: inset 0 0 0 2px var(--line); background: transparent; display: grid; place-items: center; color: var(--on-grass); cursor: pointer; flex: none; padding: 0; }
+.ce-check[aria-checked="true"] { background: var(--grass); box-shadow: none; }
+.ce-item-body { flex: 1; min-width: 0; }
+.ce-item-body small { display: block; font-size: 14px; line-height: 20px; color: var(--ink-muted); }
+.ce-item[data-done="true"] .ce-item-name { text-decoration: line-through; color: var(--ink-muted); }
+.ce-item-qty { font-variant-numeric: tabular-nums; color: var(--ink-muted); font-size: 14px; white-space: nowrap; }
+.ce-group { border-radius: var(--radius-md); overflow: hidden; }
+
+/* BudgetMeter */
+.ce-budget { background: var(--lime); color: var(--on-lime); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); display: flex; align-items: center; gap: var(--space-4); }
+.ce-budget-text { flex: 1; min-width: 0; }
+.ce-budget-text small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.ce-budget-amt { font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-size: 30px; line-height: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ce-budget-amt span { font-family: var(--font-sans); font-size: 15px; font-weight: 500; }
+.ce-ring { flex: none; }
+.ce-ring-track { stroke: rgba(16,38,15,.15); }
+.ce-ring-val { stroke: var(--forest); }
+.ce-ring text { fill: var(--on-lime); font-family: var(--font-sans); font-weight: 600; }
+
+/* TabBar */
+.ce-tabbar { display: flex; justify-content: space-around; padding: 8px; background: var(--surface-raised); border-radius: var(--radius-pill); box-shadow: var(--shadow-card); }
+.ce-tab { font: inherit; font-size: 12px; line-height: 16px; font-weight: 600; border: 0; background: transparent; color: var(--ink-muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 14px; border-radius: var(--radius-pill); cursor: pointer; }
+.ce-tab[aria-current="page"] { background: var(--forest); color: var(--on-forest); }
+
+/* Progress (wizard) */
+.ce-steps { display: flex; gap: 6px; }
+.ce-steps i { height: 6px; flex: 1; border-radius: var(--radius-pill); background: var(--surface-sunken); }
+.ce-steps i[data-on="true"] { background: var(--grass); }
+
+@media (prefers-reduced-motion: reduce) { .ce-btn, .ce-toggle, .ce-toggle::after { transition: none; } .ce-btn-spin { animation-duration: 2s; } }
+
+/* TextField */
+.ce-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ce-field-label { font-size: 14px; line-height: 20px; font-weight: 600; }
+.ce-input { font: inherit; width: 100%; box-sizing: border-box; height: 48px; padding: 0 var(--space-4); border-radius: var(--radius-md); border: 1.5px solid var(--line); background: var(--surface-raised); color: var(--ink); }
+.ce-textarea { height: auto; padding: var(--space-3) var(--space-4); resize: vertical; }
+.ce-input::placeholder { color: var(--ink-muted); }
+.ce-input:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
+.ce-input-wrap { position: relative; }
+.ce-input-wrap .ce-input { padding-right: 52px; }
+.ce-input-suffix { position: absolute; right: var(--space-4); top: 50%; transform: translateY(-50%); color: var(--ink-muted); font-size: 14px; pointer-events: none; }
+.ce-field-hint { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+.ce-field-msg { font-size: 13px; line-height: 18px; color: var(--tomato); font-weight: 600; }
+.ce-field-error .ce-input { border-color: var(--tomato); }
+.ce-select { font: inherit; height: 48px; padding: 0 var(--space-3); border-radius: var(--radius-md); border: 1.5px solid var(--line); background: var(--surface-raised); color: var(--ink); }
+.ce-select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* DayPicker */
+.ce-daypick { display: flex; flex-direction: column; gap: var(--space-2); }
+.ce-daypick-row { font: inherit; text-align: left; color: var(--ink); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 0; border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: inset 0 0 0 1.5px var(--line); cursor: pointer; }
+.ce-daypick-row[aria-checked="true"] { box-shadow: inset 0 0 0 2.5px var(--forest); }
+.ce-daypick-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ce-daypick-day { width: 44px; height: 44px; flex: none; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface-sunken); line-height: 1; }
+.ce-daypick-day b { font-size: 13px; font-weight: 600; }
+.ce-daypick-day small { font-size: 12px; color: var(--ink-muted); }
+.ce-daypick-row[data-free="true"] .ce-daypick-day { background: var(--grass); color: var(--on-grass); }
+.ce-daypick-row[data-free="true"] .ce-daypick-day small { color: var(--on-grass); }
+.ce-daypick-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ce-daypick-body small { color: var(--ink-muted); font-size: 13px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Recipe photography */
+.ce-photo { display: block; width: 100%; height: 100%; object-fit: cover; -webkit-user-drag: none; user-select: none; }
+.ce-credit { position: absolute; right: 10px; bottom: 10px; font-size: 11px; line-height: 14px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-pill); background: rgba(11,42,16,.55); color: #f3f2ea; }
+
+/* Avatar */
+.ce-avatar { width: 40px; height: 40px; flex: none; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 600; font-size: 16px; line-height: 1; }
+.ce-avatar-sm { width: 24px; height: 24px; font-size: 12px; }
+.ce-avatar-lg { width: 64px; height: 64px; font-size: 26px; font-family: var(--font-display); font-variation-settings: "SOFT" 100; }
+.ce-avatar-grass { background: var(--grass); color: var(--on-grass); }
+.ce-avatar-lime { background: var(--lime); color: var(--on-lime); }
+.ce-avatar-forest { background: var(--forest); color: var(--on-forest); }
+.ce-avatar-oker { background: var(--oker-soft); color: var(--oker); }
+.ce-avstack { display: inline-flex; }
+.ce-avstack .ce-avatar { box-shadow: 0 0 0 2px var(--surface-raised); }
+.ce-avstack .ce-avatar + .ce-avatar { margin-left: -6px; }
+
+/* CodeInput */
+.ce-code { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-2); }
+.ce-code-box { font: inherit; font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-size: 28px; font-weight: 600; text-align: center; height: 60px; min-width: 0; border-radius: var(--radius-md); border: 1.5px solid var(--line); background: var(--surface-raised); color: var(--ink); caret-color: var(--forest); }
+.ce-code-box:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
+.ce-code-error .ce-code-box { border-color: var(--tomato); }
+
+/* WeekStrip: day with a note */
+.ce-day { position: relative; }
+.ce-day[data-note="true"]::after { content: ""; position: absolute; top: 6px; right: calc(50% - 16px); width: 7px; height: 7px; border-radius: 2px; background: var(--oker); transform: rotate(45deg); }
+.ce-day[aria-pressed="true"][data-note="true"]::after { background: var(--on-grass); }
+
+</style>
+<style>
+:root {
+  --surface: #f3f2ea;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e8eadd;
+  --line: #d9dccb;
+  --ink: #10260f;
+  --ink-muted: #53604c;
+  --grass: #2db34a;
+  --on-grass: #0b2a10;
+  --forest: #0f3a17;
+  --on-forest: #f3f2ea;
+  --lime: #dceb8a;
+  --on-lime: #10260f;
+  --tomato: #b83a22;
+  --tomato-soft: #f7ded6;
+  --save: #186b2d;
+  --oker: #7a5619;
+  --oker-soft: #f2e6cc;
+  --focus: #0f3a17;
+  --shadow-card: 0 1px 2px rgba(16,38,15,0.06), 0 8px 24px rgba(16,38,15,0.06);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+  --font-display: "Fraunces", "Cooper Std", Georgia, serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --surface: #0d1d10;
+  --surface-raised: #152a18;
+  --surface-sunken: #1d3821;
+  --line: #2c4a30;
+  --ink: #edf2e3;
+  --ink-muted: #a3b39b;
+  --grass: #3fc95c;
+  --on-grass: #0b2a10;
+  --forest: #0f3a17;
+  --on-forest: #f3f2ea;
+  --lime: #d4e77a;
+  --on-lime: #10260f;
+  --tomato: #ff7a5c;
+  --tomato-soft: #3a1a12;
+  --save: #6bdb84;
+  --oker: #e2b565;
+  --oker-soft: #33270f;
+  --focus: #d4e77a;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --surface: #0d1d10;
+  --surface-raised: #152a18;
+  --surface-sunken: #1d3821;
+  --line: #2c4a30;
+  --ink: #edf2e3;
+  --ink-muted: #a3b39b;
+  --grass: #3fc95c;
+  --on-grass: #0b2a10;
+  --forest: #0f3a17;
+  --on-forest: #f3f2ea;
+  --lime: #d4e77a;
+  --on-lime: #10260f;
+  --tomato: #ff7a5c;
+  --tomato-soft: #3a1a12;
+  --save: #6bdb84;
+  --oker: #e2b565;
+  --oker-soft: #33270f;
+  --focus: #d4e77a;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+  color-scheme: dark;
+}
+.display-xl { font-family: var(--font-display); font-size: 52px; line-height: 52px; font-weight: 650; letter-spacing: -0.02em; font-variation-settings: 'opsz' 144, 'SOFT' 100; }
+.display-l { font-family: var(--font-display); font-size: 36px; line-height: 38px; font-weight: 600; letter-spacing: -0.015em; font-variation-settings: 'opsz' 96, 'SOFT' 100; }
+.title { font-family: var(--font-display); font-size: 24px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; font-variation-settings: 'opsz' 48, 'SOFT' 100; }
+.price { font-family: var(--font-display); font-size: 30px; line-height: 32px; font-weight: 600; font-variation-settings: 'opsz' 72, 'SOFT' 100; }
+.heading { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; }
+.body { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+.body-strong { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 600; }
+.small { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.label { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; }
+
+/* Layout: a phone-sized app, centred on a sunken ground on desktop, full-bleed on phones. */
+html, body { height: 100%; }
+body { background: var(--surface-sunken); display: flex; justify-content: center; align-items: center; padding-inline: 16px; padding-block: 24px; box-sizing: border-box; }
+#app { width: 100%; max-width: 400px; height: min(844px, calc(100vh - 48px)); }
+.phone { position: relative; height: 100%; background: var(--surface); border-radius: 44px; overflow: hidden; box-shadow: 0 0 0 10px var(--ink), 0 30px 60px rgba(16,38,15,.25); display: flex; flex-direction: column; }
+.phone-hero { background: var(--grass); }
+@media (max-width: 480px) {
+  body { padding: 0; align-items: stretch; }
+  #app { max-width: none; height: 100%; }
+  .phone { border-radius: 0; box-shadow: none; }
+}
+.scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+.screen { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6) var(--space-4) 0; min-height: 100%; box-sizing: border-box; }
+.spacer { height: 170px; flex: none; }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-3); }
+.top h1 { margin: 4px 0 0; }
+h1, h2, p { margin: 0; text-wrap: balance; }
+.eyebrow { color: var(--ink-muted); text-transform: uppercase; }
+.muted { color: var(--ink-muted); }
+.num { font-variant-numeric: tabular-nums; }
+.sec { display: flex; flex-direction: column; gap: var(--space-3); }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.list-gap { display: flex; flex-direction: column; gap: var(--space-3); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.stack { display: flex; flex-direction: column; gap: var(--space-5); flex: 1; }
+.center-row { display: flex; justify-content: center; }
+.empty { display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; color: var(--ink-muted); }
+.ce-rcard { cursor: pointer; }
+.ce-rcard .ce-iconbtn { flex: none; }
+
+/* Type classes from tokens (display face gets the SOFT axis) */
+.display-xl, .display-l, .title, .price { font-variation-settings: "SOFT" 100; }
+
+/* Dock: cheapest bar + tab bar float over the content */
+.dock { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: var(--space-2); background: linear-gradient(to top, var(--surface) 70%, transparent); padding-top: var(--space-5); }
+
+/* Onboarding hero */
+.hero { position: relative; height: 100%; min-height: 100%; display: flex; flex-direction: column; color: var(--on-grass); overflow: hidden; background: var(--grass); }
+.hero-blobs { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-top { position: relative; display: flex; justify-content: space-between; align-items: center; padding: var(--space-6) var(--space-5) 0; }
+.hero-top .ce-steps i { background: rgba(11,42,16,.2); }
+.hero-top .ce-steps i[data-on="true"] { background: var(--on-grass); }
+.wordmark { font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-weight: 650; font-size: 22px; letter-spacing: -0.01em; }
+.hero-title { position: relative; padding: var(--space-7) var(--space-5) 0; font-size: 60px; line-height: 58px; color: var(--on-grass); }
+.hero-panel { position: relative; margin-top: auto; background: var(--forest); color: var(--on-forest); border-radius: 36px 36px 0 0; padding: var(--space-6) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: var(--space-5); }
+.hero-panel p { font-size: 17px; line-height: 26px; }
+
+.onboard, .wiz { padding-bottom: var(--space-5); }
+.onboard-top, .wiz-top { display: flex; align-items: center; gap: var(--space-4); justify-content: space-between; }
+.onboard-cta { position: sticky; bottom: 0; padding-top: var(--space-3); }
+.wiz-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.wiz .stack > p { color: var(--ink-muted); }
+
+/* Swipe stack */
+.swipe-wrap { position: relative; }
+.swipe-under { position: absolute; left: 14px; right: 14px; top: 10px; height: 60%; border-radius: var(--radius-lg); background: var(--lime); }
+.swipe-wrap .ce-swipe { position: relative; }
+
+/* Compare sheet */
+.sheet-back { position: absolute; inset: 0; background: rgba(11,42,16,.45); display: flex; align-items: flex-end; z-index: 5; }
+.sheet { width: 100%; max-height: 88%; overflow-y: auto; background: var(--surface); border-radius: 32px 32px 0 0; padding: var(--space-3) var(--space-4) var(--space-6); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-4); }
+.sheet-grip { width: 44px; height: 5px; border-radius: 3px; background: var(--line); align-self: center; }
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.sheet-head h2 { margin-top: 4px; }
+
+.scroll { scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.phone-hero .screen { color: var(--on-grass); }
+.phone-hero .ce-steps i { background: rgba(11,42,16,.2); }
+.phone-hero .ce-steps i[data-on="true"] { background: var(--on-grass); }
+
+/* Smaaktest card */
+.testcard { position: relative; overflow: hidden; background: var(--grass); color: var(--on-grass); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+.testcard > * { position: relative; }
+.testcard .eyebrow { color: var(--on-grass); }
+.testcard-blobs { position: absolute !important; inset: 0; width: 100%; height: 100%; }
+.testcard-title { font-size: 30px; line-height: 32px; max-width: 92%; }
+.testcard p { max-width: 90%; }
+.steps-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.swipe-progress { display: flex; align-items: center; gap: var(--space-3); }
+.swipe-progress .ce-steps { flex: 1; }
+
+/* Recepten filters */
+.chips-scroll { flex-wrap: nowrap; overflow-x: auto; margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4); scrollbar-width: none; }
+.chips-scroll::-webkit-scrollbar { display: none; }
+.chips-scroll .ce-chip { flex: none; }
+
+/* Recipe detail */
+.detail { min-height: 100%; position: relative; }
+.detail-art { position: relative; height: 300px; background: var(--grass); overflow: hidden; }
+.detail-art .ce-dish { height: 100%; }
+.detail-nav { position: absolute; top: var(--space-5); left: var(--space-4); right: var(--space-4); display: flex; justify-content: space-between; }
+.detail-body { margin-top: -28px; position: relative; background: var(--surface); border-radius: 28px 28px 0 0; padding-top: var(--space-5); min-height: 0; }
+.ingrow { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); background: var(--surface-raised); }
+.ingrow + .ingrow { border-top: 1px solid var(--line); }
+.ingrow-name { flex: 1; min-width: 0; }
+.ingrow-qty { color: var(--ink-muted); font-size: 14px; white-space: nowrap; }
+.source-link { color: var(--ink); font-weight: 600; text-underline-offset: 3px; }
+.notes { white-space: pre-wrap; }
+.spacer-s { height: 96px; flex: none; }
+.detail-cta { position: sticky; bottom: 0; padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--surface) 75%, transparent); }
+
+/* Sheets */
+.sheet-tall { max-height: 92%; }
+
+/* Eigen recept form */
+.addform { padding-bottom: var(--space-5); }
+.addform .wiz-top .heading { flex: 1; text-align: center; }
+.ingform { background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.ingform .ce-input, .ingform .ce-select { background: var(--surface); }
+.ingform-top { display: flex; gap: var(--space-2); align-items: flex-end; }
+.ingform-name { flex: 1; }
+.ingform-qty { display: grid; grid-template-columns: 1fr 112px; gap: var(--space-3); }
+.ingform-sugg { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.ingform-sugg .ce-chip { height: 34px; font-size: 14px; background: var(--lime); color: var(--on-lime); }
+.ingform-foot { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.pantry-check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-muted); cursor: pointer; }
+.pantry-check input { width: 18px; height: 18px; accent-color: var(--forest); }
+
+/* Toast */
+.toast { position: absolute; left: 50%; top: calc(var(--space-5) + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; gap: var(--space-2); max-width: calc(100% - 48px); padding: 10px 16px; border-radius: var(--radius-pill); background: var(--forest); color: var(--on-forest); font-weight: 600; font-size: 14px; box-shadow: var(--shadow-card); animation: toast-in .2s ease; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/* Recepten: swipe / lijst switch */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--radius-pill); background: var(--surface-sunken); }
+.seg-btn { font: inherit; font-weight: 600; font-size: 15px; height: 40px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--ink-muted); cursor: pointer; }
+.seg-btn[aria-selected="true"] { background: var(--surface-raised); color: var(--ink); box-shadow: 0 1px 3px rgba(16,38,15,.12); }
+.seg-btn:focus-visible, .linkbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.swipe-meta { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) var(--space-1) 0; }
+.linkbtn { font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.detail-art .ce-photo { position: absolute; inset: 0; }
+.detail-credit { bottom: 40px; }
+.ce-rcard-art { background: var(--surface-sunken); }
+
+/* Like button on recipe cards */
+.card-actions { display: flex; flex-direction: column; gap: var(--space-2); flex: none; }
+.likebtn { width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: var(--surface-raised); color: var(--ink-muted); box-shadow: inset 0 0 0 1.5px var(--line); transition: transform .12s ease; }
+.likebtn[aria-pressed="true"] { color: var(--tomato); background: var(--tomato-soft); box-shadow: none; }
+.likebtn:active { transform: scale(.9); }
+.likebtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.seg { grid-template-columns: repeat(3, 1fr); }
+.seg-btn { font-size: 14px; }
+
+/* Profiel */
+.profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.stat { font: inherit; text-align: left; border: 0; cursor: pointer; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--lime); color: var(--on-lime); display: flex; flex-direction: column; gap: 2px; }
+.stat:last-child { background: var(--grass); color: var(--on-grass); }
+.stat b { font-family: var(--font-display); font-variation-settings: "SOFT" 100; font-size: 34px; line-height: 36px; font-weight: 600; }
+.stat span { font-size: 14px; font-weight: 600; }
+.stat:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mine-item { display: flex; flex-direction: column; gap: var(--space-2); }
+.confirm { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--tomato-soft); color: var(--ink); font-weight: 600; }
+.confirm-actions { display: flex; gap: var(--space-2); }
+.empty-card { display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; padding: var(--space-5); border-radius: var(--radius-lg); background: var(--surface-raised); color: var(--ink-muted); }
+.liked-strip { display: flex; gap: var(--space-3); overflow-x: auto; margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4); scrollbar-width: none; }
+.liked-strip::-webkit-scrollbar { display: none; }
+.liked-tile { font: inherit; flex: none; width: 132px; border: 0; padding: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+.liked-tile .ce-photo, .liked-tile .ce-dish { width: 132px; height: 132px; border-radius: var(--radius-md); object-fit: cover; }
+.liked-tile span { font-size: 14px; line-height: 18px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.liked-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-md); }
+@media (prefers-reduced-motion: reduce) { .likebtn { transition: none; } }
+
+/* Auth */
+.auth { padding-bottom: var(--space-5); }
+.hero-panel .btn-on-forest { color: var(--on-forest); box-shadow: inset 0 0 0 1.5px rgba(243,242,234,.45); }
+.auth-links { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.linkbtn[disabled] { color: var(--ink-muted); text-decoration: none; cursor: default; }
+.center-link { align-self: center; }
+.demo-note { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--lime); color: var(--on-lime); font-size: 14px; line-height: 20px; }
+.demo-note svg { flex: none; margin-top: 1px; }
+
+/* Profiel: head, household, settings */
+.profile-head { display: flex; align-items: center; gap: var(--space-4); }
+.profile-head h1 { margin: 0; }
+.member { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface-raised); }
+.member + .member { border-top: 1px solid var(--line); }
+.member-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.member-body small { color: var(--ink-muted); font-size: 13px; line-height: 18px; }
+.setrow { font: inherit; width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 0; background: var(--surface-raised); color: var(--ink); cursor: pointer; }
+.setrow + .setrow { border-top: 1px solid var(--line); }
+.setrow small { display: block; color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+.setrow:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.danger-link { color: var(--tomato); align-self: center; }
+
+/* Gelikete: whose likes */
+.who { display: flex; gap: var(--space-2); overflow-x: auto; margin-inline: calc(-1 * var(--space-4)); padding-inline: var(--space-4); scrollbar-width: none; }
+.who::-webkit-scrollbar { display: none; }
+.who-btn { font: inherit; flex: none; display: inline-flex; align-items: center; gap: var(--space-2); height: 44px; padding: 0 var(--space-4) 0 8px; border: 0; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink); cursor: pointer; font-weight: 600; font-size: 15px; }
+.who-btn b { font-weight: 600; color: var(--ink-muted); font-size: 14px; }
+.who-btn[aria-selected="true"] { background: var(--forest); color: var(--on-forest); }
+.who-btn[aria-selected="true"] b { color: var(--on-forest); opacity: .8; }
+.who-btn[aria-selected="true"] .ce-avstack .ce-avatar { box-shadow: 0 0 0 2px var(--forest); }
+.who-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Notes per day */
+.daynote { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--lime); color: var(--on-lime); }
+.daynote-edit { background: var(--surface-raised); color: var(--ink); }
+.daynote-head { display: flex; align-items: center; gap: var(--space-2); }
+.daynote-text { white-space: pre-wrap; font-size: 16px; line-height: 24px; }
+.daynote-actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.daynote .ce-btn-secondary { background: rgba(255,255,255,.6); color: var(--on-lime); }
+.daynote .ce-btn-ghost { color: var(--on-lime); box-shadow: inset 0 0 0 1.5px rgba(16,38,15,.25); }
+.daynote-edit .ce-btn-ghost { color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.daynote-count { margin-left: auto; }
+.note-idea { height: 34px; font-size: 14px; }
+
+/* Author */
+.author-row { font: inherit; display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-3); border: 0; border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); text-align: left; cursor: pointer; }
+.author-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.author-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.author-body small { color: var(--ink-muted); font-size: 13px; line-height: 16px; }
+.author-link { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; font-weight: 600; }
+.author-hero { display: flex; align-items: center; gap: var(--space-4); }
+.author-hero h1 { margin: 0; }
+.post-meta { font-size: 13px; line-height: 18px; color: var(--ink-muted); text-align: center; padding-top: var(--space-2); border-top: 1px solid var(--line); }
+
+/* Photo picker */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.photo-pick { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 150px; border-radius: var(--radius-lg); border: 2px dashed var(--line); background: var(--surface-raised); color: var(--ink); cursor: pointer; text-align: center; padding: var(--space-4); }
+.photo-pick small { color: var(--ink-muted); font-size: 13px; }
+.photo-pick:focus-within, .photo-pick:hover { border-color: var(--grass); }
+.photo-pick.has-photo { position: relative; padding: 0; border: 0; overflow: hidden; aspect-ratio: 4 / 3; cursor: default; }
+.photo-pick.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-actions { position: absolute; left: var(--space-3); bottom: var(--space-3); display: flex; gap: var(--space-2); }
+.photo-actions .ce-btn-ghost { background: var(--surface-raised); }
+input[type="file"]:focus-visible + * { outline: 2px solid var(--focus); }
+
+/* New ingredient chips */
+.ingform-sugg .chip-new { background: var(--forest); color: var(--on-forest); }
+.ingform-sugg .chip-custom { background: var(--surface-sunken); color: var(--ink); }
+
+/* Loading + desktop gate (website) */
+.loading { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); background: var(--grass); color: var(--on-grass); }
+.loading .wordmark { font-size: 34px; }
+.gate { min-height: 100vh; box-sizing: border-box; max-width: 560px; margin: 0 auto; padding: var(--space-7) var(--space-4); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); color: var(--ink); }
+.gate .wordmark { color: var(--forest); font-size: 26px; }
+.gate-qr { width: 220px; padding: var(--space-3); background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+.gate-qr svg { display: block; width: 100%; height: auto; }
+.gate-url { font-weight: 600; word-break: break-all; }
+
+
+html.web, html.web body { height: 100%; }
+html.web body { padding: 0; align-items: stretch; background: var(--surface); }
+html.web #app { max-width: none; height: 100%; }
+html.web .phone { border-radius: 0; box-shadow: none; }
+html.web .screen { padding-top: calc(var(--space-5) + env(safe-area-inset-top, 0px)); }
+html.web .hero-top { padding-top: calc(var(--space-5) + env(safe-area-inset-top, 0px)); }
+html.web .detail-nav { top: calc(var(--space-4) + env(safe-area-inset-top, 0px)); }
+html.web .toast { top: calc(var(--space-4) + env(safe-area-inset-top, 0px)); }
+html.web body:has(.gate) { display: block; background: var(--surface); }
+
+</style>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+/* @ds-bundle: {"format":4,"namespace":"CheapEat","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Chip"},{"name":"Badge"},{"name":"Stepper"},{"name":"Toggle"},{"name":"SearchField"},{"name":"WeekStrip"},{"name":"Dish"},{"name":"RecipeCard"},{"name":"SwipeCard"},{"name":"TipCard"},{"name":"CheapestBar"},{"name":"StoreRow"},{"name":"ListItem"},{"name":"BudgetMeter"},{"name":"TabBar"},{"name":"TextField"},{"name":"DayPicker"},{"name":"Avatar"},{"name":"CodeInput"}]} */
+(function () {
+  var React = window.React, h = React.createElement;
+  function cx() { return Array.prototype.filter.call(arguments, Boolean).join(" "); }
+  function eur(n) { return "€" + n.toFixed(2).replace(".", ","); }
+
+  /* ---------- Icon: 24px stroke icons, 1.75 stroke, round caps ---------- */
+  var P = {
+    week: "M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM4 9.5h16M8.5 2.5v3M15.5 2.5v3",
+    recipes: "M12 21c4.5 0 8-3 8-7.5H4C4 18 7.5 21 12 21zM3 13.5h18M9 9.5c0-2 1.5-2.5 1.5-4.5M13.5 9.5c0-2 1.5-2.5 1.5-4.5",
+    list: "M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01",
+    user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c1-3.5 4-5.5 7.5-5.5s6.5 2 7.5 5.5",
+    plus: "M12 5v14M5 12h14",
+    minus: "M5 12h14",
+    check: "M5 12.5l4.5 4.5L19 7.5",
+    x: "M6 6l12 12M18 6L6 18",
+    heart: "M12 20s-7.5-4.5-7.5-10A4.5 4.5 0 0 1 12 7.2 4.5 4.5 0 0 1 19.5 10c0 5.5-7.5 10-7.5 10z",
+    arrow: "M5 12h14M13 6l6 6-6 6",
+    chevron: "M9 6l6 6-6 6",
+    back: "M15 6l-6 6 6 6",
+    search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+    leaf: "M5 19C5 10 10 5 20 4c-1 10-6 15-15 15zM5 19l7-7",
+    swap: "M7 7h12l-3-3M17 17H5l3 3",
+    lock: "M6.5 11h11v9h-11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3",
+    refresh: "M19.5 12A7.5 7.5 0 1 1 17 6.4M19.5 4v4h-4",
+    spark: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18",
+    store: "M4 9.5l1.5-5h13l1.5 5M4 9.5h16M4 9.5c0 1.7 1.3 2.5 2.7 2.5S9.3 11.2 9.3 9.5c0 1.7 1.3 2.5 2.7 2.5s2.7-.8 2.7-2.5c0 1.7 1.3 2.5 2.7 2.5S20 11.2 20 9.5M5.5 12v8h13v-8",
+    clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7.5V12l3 2",
+    people: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.8-3 3.4-5 6.5-5s5.7 2 6.5 5M16 4.3a3.5 3.5 0 0 1 0 6.4M18 15.3c1.7.7 3 2.3 3.5 4.7",
+    warn: "M12 4l9 16H3zM12 10v4M12 17h.01"
+  };
+  function Icon(props) {
+    var size = props.size || 22;
+    return h("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: props.strokeWidth || 1.75, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": props.label ? undefined : true, role: props.label ? "img" : undefined, "aria-label": props.label, className: props.className },
+      h("path", { d: P[props.name] || P.spark }));
+  }
+  Icon.names = Object.keys(P);
+
+  /* ---------- Button ---------- */
+  function Button(props) {
+    var variant = props.variant || "primary", size = props.size || "md";
+    var rest = Object.assign({}, props);
+    ["variant", "size", "trailingIcon", "block", "loading", "className", "children"].forEach(function (k) { delete rest[k]; });
+    return h("button", Object.assign({ type: "button" }, rest, {
+      className: cx("ce-btn", "ce-btn-" + variant, "ce-btn-" + size, props.block && "ce-btn-block", props.trailingIcon && "ce-btn-trail", props.className),
+      disabled: props.disabled || props.loading, "aria-busy": props.loading || undefined
+    }),
+      props.loading ? h("span", { className: "ce-btn-spin", "aria-hidden": true }) : null,
+      h("span", null, props.children),
+      props.trailingIcon ? h("span", { className: "ce-btn-orb" }, h(Icon, { name: props.trailingIcon, size: 20 })) : null);
+  }
+
+  function IconButton(props) {
+    var rest = Object.assign({}, props); ["icon", "tone", "size", "label", "className"].forEach(function (k) { delete rest[k]; });
+    return h("button", Object.assign({ type: "button" }, rest, { "aria-label": props.label, className: cx("ce-iconbtn", props.tone && "ce-iconbtn-" + props.tone, props.size === "lg" && "ce-iconbtn-lg", props.className) }),
+      h(Icon, { name: props.icon, size: props.size === "lg" ? 28 : 20, strokeWidth: props.size === "lg" ? 2.25 : 1.75 }));
+  }
+
+  /* ---------- Chip ---------- */
+  function Chip(props) {
+    return h("button", { type: "button", className: "ce-chip", "aria-pressed": !!props.selected, onClick: props.onClick },
+      props.selected ? h(Icon, { name: "check", size: 16, strokeWidth: 2.25 }) : null, props.children);
+  }
+
+  /* ---------- Badge ---------- */
+  var BADGE_ICON = { bio: "leaf", restje: "refresh", nieuw: "plus", save: null, grass: null };
+  function Badge(props) {
+    var tone = props.tone || "neutral", ic = props.icon !== undefined ? props.icon : BADGE_ICON[tone];
+    return h("span", { className: cx("ce-badge", "ce-badge-" + tone) }, ic ? h(Icon, { name: ic, size: 13, strokeWidth: 2.25 }) : null, props.children);
+  }
+
+  /* ---------- Stepper ---------- */
+  function Stepper(props) {
+    var v = props.value, min = props.min == null ? 1 : props.min, max = props.max == null ? 12 : props.max;
+    return h("div", { className: "ce-stepper", role: "group", "aria-label": props.label || "Aantal" },
+      h(IconButton, { icon: "minus", label: "Minder", disabled: v <= min, onClick: function () { props.onChange && props.onChange(Math.max(min, v - 1)); } }),
+      h("span", { className: "ce-stepper-val", "aria-live": "polite" }, v + (props.unit ? " " + props.unit : "")),
+      h(IconButton, { icon: "plus", label: "Meer", disabled: v >= max, onClick: function () { props.onChange && props.onChange(Math.min(max, v + 1)); } }));
+  }
+
+  /* ---------- Toggle ---------- */
+  function Toggle(props) {
+    var sw = h("button", { type: "button", role: "switch", className: "ce-toggle", "aria-checked": !!props.checked, "aria-label": props.label, onClick: function () { props.onChange && props.onChange(!props.checked); } });
+    if (!props.label) return sw;
+    return h("div", { className: "ce-setting" }, h("div", null, props.label, props.description ? h("small", null, props.description) : null), sw);
+  }
+
+  /* ---------- SearchField ---------- */
+  function SearchField(props) {
+    return h("label", { className: "ce-search" }, h(Icon, { name: "search", size: 20 }),
+      h("input", { type: "search", id: props.id, placeholder: props.placeholder || "Zoek recept of ingrediënt", value: props.value, onChange: props.onChange, "aria-label": props.placeholder || "Zoeken" }));
+  }
+
+  /* ---------- WeekStrip ---------- */
+  var DAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"];
+  function WeekStrip(props) {
+    var dates = props.dates || [12, 13, 14, 15, 16, 17, 18];
+    return h("div", { className: "ce-week", role: "group", "aria-label": "Kies een dag" }, DAYS.map(function (d, i) {
+      return h("button", { key: d, type: "button", className: "ce-day", "aria-pressed": props.selected === i, "data-planned": !!(props.planned && props.planned[i]), "data-note": !!(props.notes && props.notes[i]), "aria-label": d + " " + dates[i] + (props.notes && props.notes[i] ? ", met notitie" : ""), onClick: function () { props.onSelect && props.onSelect(i); } },
+        h("small", null, d), h("b", null, dates[i]), h("i", null));
+    }));
+  }
+
+  /* ---------- Dish: an illustrated plate built from blob shapes ---------- */
+  var FOOD = { aardappel: "#e8c872", tomaat: "#e5452b", basilicum: "#2f9e44", pasta: "#f2c14e", courgette: "#4f8a2f", paprika: "#f08a24", rijst: "#f4efe0", kip: "#e8b27a", linzen: "#b5653a", spinazie: "#2b6b2e", feta: "#fbf8ef", ui: "#c98bb0", aubergine: "#5b3a6b", wortel: "#ef7d2d", champignon: "#c9a889", zalm: "#f28c6b", avocado: "#9cc35a", kikkererwt: "#e6c27a", broccoli: "#3f8f3a", citroen: "#f5d63d", mais: "#f7c948", bonen: "#7a3b2e", ei: "#fbd34d", kaas: "#f6c75a", gnocchi: "#efd9a7" };
+  function rng(seed) { var s = 0; for (var i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function blob(cx0, cy0, r, wob, rand, n) {
+    n = n || 7; var pts = [];
+    for (var i = 0; i < n; i++) { var a = (i / n) * Math.PI * 2, rr = r * (1 - wob / 2 + rand() * wob); pts.push([cx0 + Math.cos(a) * rr, cy0 + Math.sin(a) * rr]); }
+    var d = "";
+    for (var j = 0; j < n; j++) {
+      var p0 = pts[(j - 1 + n) % n], p1 = pts[j], p2 = pts[(j + 1) % n], p3 = pts[(j + 2) % n];
+      if (j === 0) d += "M" + p1[0].toFixed(1) + " " + p1[1].toFixed(1);
+      var c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += "C" + c1[0].toFixed(1) + " " + c1[1].toFixed(1) + " " + c2[0].toFixed(1) + " " + c2[1].toFixed(1) + " " + p2[0].toFixed(1) + " " + p2[1].toFixed(1);
+    }
+    return d + "Z";
+  }
+  function Dish(props) {
+    var ing = props.ingredients || ["pasta", "tomaat", "basilicum"], rand = rng((props.seed || "") + ing.join());
+    var ground = props.ground || "var(--lime)", kids = [];
+    kids.push(h("rect", { key: "g", width: 200, height: 200, fill: ground }));
+    kids.push(h("path", { key: "b1", d: blob(30, 170, 46, .5, rand), fill: "var(--grass)", opacity: .9 }));
+    kids.push(h("path", { key: "b2", d: blob(182, 28, 34, .5, rand), fill: "var(--grass)", opacity: .9 }));
+    kids.push(h("ellipse", { key: "sh", cx: 104, cy: 112, rx: 72, ry: 70, fill: "rgba(16,38,15,.12)" }));
+    kids.push(h("circle", { key: "pl", cx: 100, cy: 104, r: 72, fill: "#fbfaf4" }));
+    kids.push(h("circle", { key: "pl2", cx: 100, cy: 104, r: 56, fill: "none", stroke: "rgba(16,38,15,.08)", strokeWidth: 2 }));
+    var base = ing[0];
+    kids.push(h("path", { key: "base", d: blob(100, 104, 44, .35, rand, 9), fill: FOOD[base] || "#e9d9b0" }));
+    for (var k = 1; k < ing.length; k++) {
+      var col = FOOD[ing[k]] || "#8fbf5a", count = 3 + Math.floor(rand() * 3);
+      for (var m = 0; m < count; m++) {
+        var a = rand() * Math.PI * 2, d = rand() * 34;
+        kids.push(h("path", { key: k + "-" + m, d: blob(100 + Math.cos(a) * d, 104 + Math.sin(a) * d, 7 + rand() * 6, .45, rand, 6), fill: col, stroke: "rgba(16,38,15,.12)", strokeWidth: 1 }));
+      }
+    }
+    return h("svg", { className: cx("ce-dish", props.className), viewBox: "0 0 200 200", preserveAspectRatio: "xMidYMid slice", role: "img", "aria-label": props.label || ("Gerecht met " + ing.join(", ")) }, kids);
+  }
+
+  /* ---------- RecipeCard ---------- */
+  function RecipeCard(props) {
+    var r = props.recipe;
+    return h("article", { className: cx("ce-rcard", props.layout === "tall" && "ce-rcard-tall"), onClick: props.onClick },
+      h("div", { className: "ce-rcard-art" }, r.photo ? h("img", { className: "ce-photo", src: r.photo, alt: "", loading: "lazy", draggable: false }) : h(Dish, { ingredients: r.ingredients, seed: r.title, label: r.title })),
+      h("div", { className: "ce-rcard-body" },
+        h("div", { className: "ce-rcard-title" }, r.title),
+        h("div", { className: "ce-rcard-meta" }, r.minutes + " min · " + eur(r.pricePP) + " p.p."),
+        props.badges && props.badges.length ? h("div", { className: "ce-rcard-badges" }, props.badges.map(function (b, i) { return h(Badge, { key: i, tone: b.tone }, b.text); })) : null),
+      props.action || null);
+  }
+
+  /* ---------- SwipeCard: drag left = niet lekker, right = lekker ---------- */
+  function SwipeCard(props) {
+    var r = props.recipe, ref = React.useRef(null), st = React.useRef({ x: 0, y: 0, on: false, sx: 0, sy: 0 });
+    var _a = React.useState(0), dx = _a[0], setDx = _a[1];
+    function down(e) { st.current = { on: true, sx: e.clientX, sy: e.clientY }; e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); }
+    function move(e) { if (!st.current.on) return; setDx(e.clientX - st.current.sx); }
+    function up() { if (!st.current.on) return; st.current.on = false; if (dx > 110) props.onSwipe && props.onSwipe("like"); else if (dx < -110) props.onSwipe && props.onSwipe("nope"); setDx(0); }
+    var style = { transform: "translateX(" + dx + "px) rotate(" + dx / 18 + "deg)", transition: st.current.on ? "none" : "transform .25s ease" };
+    return h("div", { className: "ce-swipe", ref: ref, style: style, onPointerDown: down, onPointerMove: move, onPointerUp: up, onPointerCancel: up },
+      h("div", { className: "ce-swipe-art" }, r.photo ? h("img", { className: "ce-photo", src: r.photo, alt: r.title, draggable: false }) : h(Dish, { ingredients: r.ingredients, seed: r.title, ground: "var(--grass)", label: r.title }),
+        r.photo && r.credit ? h("span", { className: "ce-credit" }, r.credit) : null,
+        h("span", { className: "ce-swipe-stamp ce-swipe-stamp-like", style: { opacity: Math.max(0, Math.min(1, dx / 90)) } }, "Lekker"),
+        h("span", { className: "ce-swipe-stamp ce-swipe-stamp-nope", style: { opacity: Math.max(0, Math.min(1, -dx / 90)) } }, "Niet voor mij")),
+      h("div", { className: "ce-swipe-body" },
+        props.reason ? h("div", null, h(Badge, { tone: props.reasonTone || "restje", icon: props.reasonIcon }, props.reason)) : null,
+        h("div", { className: "ce-swipe-title" }, r.title),
+        h("div", { className: "ce-swipe-meta" },
+          h("span", null, r.minutes + " min"), h("span", null, eur(r.pricePP) + " p.p."), r.bio ? h(Badge, { tone: "bio" }, "Bio") : null)));
+  }
+
+  /* ---------- TipCard (bespaarcoach) ---------- */
+  function TipCard(props) {
+    return h("div", { className: cx("ce-tip", props.tone === "warn" && "ce-tip-warn"), role: "note" },
+      h("div", { className: "ce-tip-head" }, h(Icon, { name: props.tone === "warn" ? "warn" : "spark", size: 20 }), h("p", null, props.children)),
+      props.primary || props.secondary ? h("div", { className: "ce-tip-actions" },
+        props.primary ? h(Button, { size: "sm", variant: "primary", onClick: props.onPrimary }, props.primary) : null,
+        props.secondary ? h(Button, { size: "sm", variant: "secondary", onClick: props.onSecondary }, props.secondary) : null) : null);
+  }
+
+  /* ---------- CheapestBar ---------- */
+  function CheapestBar(props) {
+    return h("button", { type: "button", className: "ce-bar", onClick: props.onClick, "aria-label": "Goedkoopst: " + props.store + ", " + eur(props.total) + ". Bekijk vergelijking" },
+      h("span", { className: "ce-bar-text" }, h("small", null, "Goedkoopst voor je lijstje"), h("b", null, props.store + (props.saving ? " · " + eur(props.saving) + " goedkoper" : ""))),
+      h("span", { className: "ce-bar-price" }, eur(props.total)),
+      h("span", { className: "ce-bar-orb" }, h(Icon, { name: "arrow", size: 20 })));
+  }
+
+  /* ---------- StoreRow ---------- */
+  function StoreRow(props) {
+    return h("div", { className: "ce-store", "data-best": props.rank === 1 },
+      h("span", { className: "ce-store-rank" }, props.rank),
+      h("div", { className: "ce-store-name" }, h("b", null, props.store), props.note ? h("small", null, props.note) : null),
+      h("div", { className: "ce-store-total" }, eur(props.total), props.rank === 1 ? h("small", null, "Goedkoopst") : (props.diff ? h("small", null, "+ " + eur(props.diff)) : null)));
+  }
+
+  /* ---------- ListItem ---------- */
+  function ListItem(props) {
+    return h("div", { className: "ce-item", "data-done": !!props.done },
+      h("button", { type: "button", role: "checkbox", className: "ce-check", "aria-checked": !!props.done, "aria-label": props.name + " afvinken", onClick: props.onToggle }, props.done ? h(Icon, { name: "check", size: 16, strokeWidth: 2.5 }) : null),
+      h("div", { className: "ce-item-body" }, h("div", { className: "ce-item-name" }, props.name, props.bio ? " " : null, props.bio ? h(Badge, { tone: "bio" }, "Bio") : null), props.note ? h("small", null, props.note) : null),
+      h("span", { className: "ce-item-qty" }, props.qty));
+  }
+
+  /* ---------- BudgetMeter ---------- */
+  function BudgetMeter(props) {
+    var pct = Math.min(1, props.spent / props.budget), R = 26, C = 2 * Math.PI * R;
+    return h("div", { className: "ce-budget" },
+      h("div", { className: "ce-budget-text" }, h("small", null, props.label || "Weekbudget"),
+        h("div", { className: "ce-budget-amt" }, eur(props.spent), h("span", null, " van " + eur(props.budget)))),
+      h("svg", { className: "ce-ring", width: 64, height: 64, viewBox: "0 0 64 64", role: "img", "aria-label": Math.round(pct * 100) + "% van budget" },
+        h("circle", { className: "ce-ring-track", cx: 32, cy: 32, r: R, fill: "none", strokeWidth: 7 }),
+        h("circle", { className: "ce-ring-val", cx: 32, cy: 32, r: R, fill: "none", strokeWidth: 7, strokeLinecap: "round", strokeDasharray: C, strokeDashoffset: C * (1 - pct), transform: "rotate(-90 32 32)" }),
+        h("text", { x: 32, y: 37, textAnchor: "middle", fontSize: 14 }, Math.round(pct * 100) + "%")));
+  }
+
+  /* ---------- TabBar ---------- */
+  var TABS = [["week", "Week", "week"], ["recepten", "Recepten", "recipes"], ["lijstje", "Lijstje", "list"], ["profiel", "Profiel", "user"]];
+  function TabBar(props) {
+    return h("nav", { className: "ce-tabbar", "aria-label": "Hoofdmenu" }, TABS.map(function (t) {
+      return h("button", { key: t[0], type: "button", className: "ce-tab", "aria-current": props.active === t[0] ? "page" : undefined, onClick: function () { props.onChange && props.onChange(t[0]); } },
+        h(Icon, { name: t[2], size: 22 }), t[1]);
+    }));
+  }
+
+
+  /* ---------- TextField ---------- */
+  function TextField(props) {
+    var id = props.id || ("f-" + (props.label || "veld").replace(/\W+/g, "-").toLowerCase());
+    var input = props.multiline
+      ? h("textarea", { id: id, className: "ce-input ce-textarea", value: props.value, placeholder: props.placeholder, onChange: props.onChange, rows: props.rows || 3, "aria-invalid": !!props.error, "aria-describedby": props.error || props.hint ? id + "-msg" : undefined })
+      : h("input", { id: id, className: "ce-input", type: props.type || "text", inputMode: props.inputMode, value: props.value, placeholder: props.placeholder, onChange: props.onChange, onFocus: props.onFocus, onBlur: props.onBlur, list: props.list, autoComplete: "off", "aria-invalid": !!props.error, "aria-describedby": props.error || props.hint ? id + "-msg" : undefined });
+    return h("div", { className: cx("ce-field", props.error && "ce-field-error", props.className) },
+      props.label ? h("label", { htmlFor: id, className: "ce-field-label" }, props.label) : null,
+      props.suffix ? h("div", { className: "ce-input-wrap" }, input, h("span", { className: "ce-input-suffix" }, props.suffix)) : input,
+      props.error ? h("small", { id: id + "-msg", className: "ce-field-msg" }, props.error) : props.hint ? h("small", { id: id + "-msg", className: "ce-field-hint" }, props.hint) : null);
+  }
+
+  /* ---------- DayPicker: choose the day to eat a recipe ---------- */
+  function DayPicker(props) {
+    return h("div", { className: "ce-daypick", role: "radiogroup", "aria-label": props.label || "Kies een dag" }, props.days.map(function (d, i) {
+      return h("button", { key: i, type: "button", role: "radio", "aria-checked": props.selected === i, className: "ce-daypick-row", "data-free": !d.planned, onClick: function () { props.onSelect && props.onSelect(i); } },
+        h("span", { className: "ce-daypick-day" }, h("b", null, d.short), h("small", null, d.date)),
+        h("span", { className: "ce-daypick-body" }, h("span", null, d.label), h("small", null, d.planned ? "Nu: " + d.planned : "Nog niets gepland")),
+        d.hint ? h(Badge, { tone: d.good ? "restje" : "neutral", icon: null }, d.hint) : null);
+    }));
+  }
+
+
+  /* ---------- Avatar: initial in a coloured disc ---------- */
+  var AV_TONES = ["grass", "lime", "forest", "oker"];
+  function Avatar(props) {
+    var name = props.name || "?", tone = props.tone || AV_TONES[(name.charCodeAt(0) || 0) % AV_TONES.length];
+    return h("span", { className: cx("ce-avatar", "ce-avatar-" + tone, props.size && "ce-avatar-" + props.size), title: props.title || name, "aria-label": props.label || undefined, "aria-hidden": props.label ? undefined : true },
+      name.trim().charAt(0).toUpperCase());
+  }
+  function AvatarStack(props) {
+    return h("span", { className: "ce-avstack" }, props.names.map(function (n, i) { return h(Avatar, { key: i, name: n, size: "sm" }); }));
+  }
+
+  /* ---------- CodeInput: 6-digit verification code ---------- */
+  function CodeInput(props) {
+    var len = props.length || 6, val = (props.value || "").slice(0, len), refs = React.useRef([]);
+    function put(str, from) {
+      var digits = str.replace(/\D/g, ""); if (!digits) return;
+      var arr = val.split(""); for (var i = 0; i < digits.length && from + i < len; i++) arr[from + i] = digits[i];
+      var next = arr.join("").slice(0, len); props.onChange && props.onChange(next);
+      var focusAt = Math.min(from + digits.length, len - 1); setTimeout(function () { refs.current[focusAt] && refs.current[focusAt].focus(); }, 0);
+      if (next.length === len && props.onComplete) props.onComplete(next);
+    }
+    return h("div", { className: cx("ce-code", props.error && "ce-code-error"), role: "group", "aria-label": props.label || "Verificatiecode" },
+      Array.apply(null, Array(len)).map(function (_, i) {
+        return h("input", { key: i, ref: function (el) { refs.current[i] = el; }, className: "ce-code-box", inputMode: "numeric", autoComplete: i === 0 ? "one-time-code" : "off", maxLength: 1,
+          "aria-label": "Cijfer " + (i + 1), value: val[i] || "",
+          onChange: function (e) { var v = e.target.value; if (!v) { var arr = val.split(""); arr[i] = ""; props.onChange && props.onChange(arr.join("").replace(/\s+$/, "")); return; } put(v.slice(-1), i); },
+          onKeyDown: function (e) { if (e.key === "Backspace" && !val[i] && i > 0) { refs.current[i - 1].focus(); var arr = val.split(""); arr[i - 1] = ""; props.onChange && props.onChange(arr.join("")); e.preventDefault(); } },
+          onPaste: function (e) { var t = (e.clipboardData || window.clipboardData).getData("text"); e.preventDefault(); put(t, 0); } });
+      }));
+  }
+
+  window.CheapEat = Object.assign(window.CheapEat || {}, { Icon: Icon, Button: Button, IconButton: IconButton, Chip: Chip, Badge: Badge, Stepper: Stepper, Toggle: Toggle, SearchField: SearchField, WeekStrip: WeekStrip, Dish: Dish, RecipeCard: RecipeCard, SwipeCard: SwipeCard, TipCard: TipCard, CheapestBar: CheapestBar, StoreRow: StoreRow, ListItem: ListItem, BudgetMeter: BudgetMeter, TabBar: TabBar, TextField: TextField, DayPicker: DayPicker, Avatar: Avatar, AvatarStack: AvatarStack, CodeInput: CodeInput, eur: eur, blobPath: function (x, y, r, wob, seed, n) { return blob(x, y, r, wob, rng(seed || "x"), n); } });
+})();
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="config.js"></script>
+<script>
+/* Cheap-eat website: Supabase login (e-mail code) + saving your data per account.
+   Loaded only in the website build, before app.js. Reads window.CE_CONFIG = { url, key } from config.js. */
+(function () {
+  // Phones only for now: block desktops and tablets (add ?preview to the URL to test on a computer)
+  var shortSide = Math.min(screen.width, screen.height);
+  var touch = navigator.maxTouchPoints > 0 || "ontouchstart" in window;
+  if (!(shortSide <= 600 && touch) && !/[?&]preview\b/.test(location.search)) window.CE_GATE = true;
+
+  var cfg = window.CE_CONFIG || {};
+  if (!cfg.url || !cfg.key || !window.supabase) { console.warn("Cheap-eat: Supabase niet ingesteld, demo-modus"); return; }
+  var sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+
+  function nice(err) {
+    var m = (err && (err.message || err.msg)) || String(err || "");
+    var code = err && (err.code || err.error_code);
+    if (/signups? not allowed|user not found/i.test(m) || code === "otp_disabled") return new Error("Er is nog geen account met dit e-mailadres. Maak eerst een account aan.");
+    if (/expired|invalid/i.test(m) && /token|otp|code/i.test(m)) return new Error("Deze code klopt niet of is verlopen. Vraag een nieuwe code aan.");
+    if (/rate limit|only request this after|too many/i.test(m) || (err && err.status === 429)) return new Error("Je hebt te vaak een code aangevraagd. Wacht een minuut en probeer het opnieuw.");
+    if (/already been registered|already registered|email_exists/i.test(m)) return new Error("Dit e-mailadres is al in gebruik.");
+    if (/fetch|network/i.test(m)) return new Error("Geen verbinding. Controleer je internet en probeer het opnieuw.");
+    return new Error("Er ging iets mis: " + m);
+  }
+  function unwrap(res) { if (res.error) throw nice(res.error); return res.data; }
+  function uid() { return sb.auth.getSession().then(function (r) { var s = r.data.session; if (!s) throw new Error("Je bent uitgelogd. Log opnieuw in."); return s.user.id; }); }
+
+  window.CE_API = {
+    session: function () { return sb.auth.getSession().then(function (r) { return r.data.session; }); },
+    sendCode: function (email, create) { return sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: !!create } }).then(unwrap); },
+    verify: function (email, code) { return sb.auth.verifyOtp({ email: email, token: code, type: "email" }).then(unwrap); },
+    changeEmail: function (email) { return sb.auth.updateUser({ email: email }).then(unwrap); },
+    verifyEmailChange: function (email, code) { return sb.auth.verifyOtp({ email: email, token: code, type: "email_change" }).then(unwrap); },
+    load: function () {
+      return uid().then(function (id) { return sb.from("user_data").select("data").eq("user_id", id).maybeSingle().then(unwrap); })
+        .then(function (row) { return row ? row.data : null; });
+    },
+    save: function (data) {
+      return uid().then(function (id) { return sb.from("user_data").upsert({ user_id: id, data: data, updated_at: new Date().toISOString() }).then(unwrap); });
+    },
+    signOut: function () { return sb.auth.signOut(); },
+    deleteAccount: function () { return sb.rpc("delete_my_account").then(unwrap).then(function () { return sb.auth.signOut(); }); }
+  };
+})();
+
+</script>
+<script>
+var CE_PHOTOS = {};
+/* Cheap-eat prototype data.
+   Recipes: titles, times and ingredient amounts from picnic.app/nl/recepten (no method text or photos copied).
+   Picnic's site does not state servings; amounts are read as 4 persons unless marked otherwise.
+   Prices are EXAMPLE prices, not live supermarket data. */
+var CE_DATA = (function () {
+  // key: [label, unit, dept, packs [[size, basePrice]], art colour key for the Dish illustration]
+  var G = "Groente & fruit", Z = "Zuivel & eieren", V = "Vlees, vis & vega", D = "Droog & pasta", W = "Wereldkeuken & sauzen", K = "Diepvries", B = "Brood & wraps", H = "Kruiden";
+  var RAW = {
+    aardappel: ["Kruimige aardappelen", "g", G, [[1000, 1.49], [2500, 2.99]], "aardappel"],
+    zoeteaardappel: ["Zoete aardappel", "g", G, [[500, 1.79], [1000, 2.99]], "wortel"],
+    spinazie: ["Spinazie", "g", G, [[300, 1.69], [600, 2.79]], "spinazie"],
+    tomaat: ["Tomaten", "g", G, [[500, 1.49], [1000, 2.59]], "tomaat"],
+    cherrytomaat: ["Cherrytomaten", "g", G, [[250, 1.49], [500, 2.39]], "tomaat"],
+    komkommer: ["Komkommer", "st.", G, [[1, 0.79]], "courgette"],
+    paprika: ["Paprika", "st.", G, [[1, 0.79], [3, 1.99]], "paprika"],
+    ui: ["Uien", "st.", G, [[3, 0.89]], "ui"],
+    rodeui: ["Rode uien", "st.", G, [[3, 0.99]], "ui"],
+    sjalot: ["Sjalotten", "st.", G, [[5, 0.99]], "ui"],
+    bosui: ["Bosui", "bos", G, [[1, 0.79]], "basilicum"],
+    courgette: ["Courgette", "st.", G, [[1, 0.89]], "courgette"],
+    broccoli: ["Broccoli", "st.", G, [[1, 1.29]], "broccoli"],
+    bloemkool: ["Bloemkool", "st.", G, [[1, 1.49]], "rijst"],
+    aubergine: ["Aubergine", "st.", G, [[1, 0.99]], "aubergine"],
+    champignon: ["Champignons", "g", G, [[250, 1.29], [500, 2.29]], "champignon"],
+    avocado: ["Avocado", "st.", G, [[1, 0.99], [2, 1.79]], "avocado"],
+    mango: ["Mango", "st.", G, [[1, 1.29]], "mais"],
+    citroen: ["Citroen", "st.", G, [[1, 0.39], [3, 1.09]], "citroen"],
+    limoen: ["Limoen", "st.", G, [[1, 0.35], [3, 0.99]], "avocado"],
+    sinaasappel: ["Sinaasappel", "st.", G, [[1, 0.49]], "wortel"],
+    sla: ["Sla (krop, veldsla, rucola)", "g", G, [[100, 1.29], [200, 1.79]], "spinazie"],
+    boerenkool: ["Boerenkool", "g", G, [[300, 1.49], [500, 1.99]], "spinazie"],
+    andijvie: ["Andijvie", "g", G, [[300, 0.99], [600, 1.79]], "avocado"],
+    chinesekool: ["Chinese kool", "st.", G, [[1, 1.29]], "avocado"],
+    koolmix: ["Koolmix met peen", "g", G, [[300, 1.29]], "wortel"],
+    wortel: ["Wortel", "g", G, [[400, 0.99]], "wortel"],
+    rodepeper: ["Rode peper", "st.", G, [[3, 0.99]], "tomaat"],
+    gember: ["Gember (gehakt)", "g", G, [[50, 0.99]], "kikkererwt"],
+    hutspotgroente: ["Hutspotgroente", "g", G, [[500, 1.49], [1000, 2.49]], "wortel"],
+    mexgroente: ["Mexicaanse roerbakgroente", "g", G, [[400, 1.79], [800, 2.99]], "paprika"],
+    bamigroente: ["Bami- en nasigroente", "g", G, [[450, 1.69]], "wortel"],
+    macaronigroente: ["Macaroni- en spaghettigroente", "g", G, [[350, 1.49], [700, 2.49]], "paprika"],
+    rodekool: ["Rode kool met appel", "g", G, [[450, 1.49]], "aubergine"],
+    basilicum: ["Basilicum", "g", H, [[15, 0.99]], "basilicum"],
+    peterselie: ["Platte peterselie", "g", H, [[15, 0.99]], "basilicum"],
+    koriander: ["Koriander", "g", H, [[15, 0.99]], "basilicum"],
+    dille: ["Dille", "g", H, [[15, 0.99]], "basilicum"],
+    munt: ["Verse munt", "g", H, [[15, 0.99]], "basilicum"],
+    bieslook: ["Bieslook", "g", H, [[10, 0.99]], "basilicum"],
+    eieren: ["Eieren", "st.", Z, [[6, 1.89], [10, 2.79]], "ei"],
+    room: ["Kookroom / slagroom", "ml", Z, [[200, 1.09], [500, 2.29]], "rijst"],
+    cremefraiche: ["Crème fraîche", "g", Z, [[125, 0.89], [200, 1.29]], "feta"],
+    zureroom: ["Zure room", "g", Z, [[125, 0.89]], "feta"],
+    yoghurt: ["Yoghurt (Griekse stijl)", "g", Z, [[500, 1.19]], "feta"],
+    melk: ["Halfvolle melk", "ml", Z, [[1000, 1.09]], "rijst"],
+    kaas: ["Geraspte kaas (cheddar, belegen)", "g", Z, [[150, 1.89], [300, 3.29]], "kaas"],
+    parmezaan: ["Parmezaan / pecorino", "g", Z, [[100, 2.49], [200, 4.29]], "kaas"],
+    mozzarella: ["Mozzarella", "st.", Z, [[1, 0.99]], "feta"],
+    feta: ["Feta", "g", Z, [[200, 1.79]], "feta"],
+    halloumi: ["Halloumi", "g", Z, [[200, 2.79]], "kaas"],
+    geitenkaas: ["Geitenkaas", "g", Z, [[100, 1.99]], "feta"],
+    roomkaas: ["Roomkaas (Boursin, naturel)", "g", Z, [[125, 1.49], [250, 2.59]], "feta"],
+    kip: ["Kipfilet / kipdijblokjes", "g", V, [[300, 3.99], [600, 6.99]], "kip"],
+    kipgehakt: ["Kipgehakt", "g", V, [[300, 3.49], [500, 5.29]], "kip"],
+    gehakt: ["Rundergehakt", "g", V, [[300, 3.19], [500, 4.99]], "linzen"],
+    gehaktballetjes: ["Mini gehaktballetjes", "g", V, [[250, 2.79], [500, 4.99]], "linzen"],
+    rundvlees: ["Runderreepjes", "g", V, [[300, 4.49]], "linzen"],
+    kipschnitzel: ["Krokante kipschnitzels", "st.", V, [[4, 4.49]], "kip"],
+    rookworst: ["Rookworst", "st.", V, [[1, 2.49]], "bonen"],
+    spekjes: ["Gerookte spekreepjes", "g", V, [[150, 1.69], [300, 2.99]], "zalm"],
+    chorizo: ["Chorizo", "g", V, [[200, 2.49]], "tomaat"],
+    ham: ["Prosciutto", "g", V, [[110, 2.49]], "zalm"],
+    zalm: ["Zalmfilet", "g", V, [[250, 4.99], [500, 8.99]], "zalm"],
+    lekkerbekje: ["Lekkerbekjes", "st.", V, [[2, 3.49]], "kip"],
+    kaasschnitzel: ["Kaasschnitzels", "st.", V, [[2, 2.49]], "kip"],
+    vegagehakt: ["Vegan gehakt", "g", V, [[200, 2.29]], "linzen"],
+    veganshoarma: ["Vegan shoarma", "g", V, [[175, 2.99]], "linzen"],
+    pasta: ["Pasta (spaghetti, penne, macaroni)", "g", D, [[500, 0.99]], "pasta"],
+    lasagne: ["Lasagnebladen", "g", D, [[500, 1.49]], "pasta"],
+    orzo: ["Orzo", "g", D, [[500, 1.69]], "rijst"],
+    ravioli: ["Verse ravioli", "g", D, [[250, 2.49], [500, 4.49]], "gnocchi"],
+    gnocchi: ["Gnocchi", "g", D, [[500, 1.99]], "gnocchi"],
+    rijst: ["Rijst", "g", D, [[500, 1.29], [1000, 2.29]], "rijst"],
+    noedels: ["Noedels / mie", "g", D, [[250, 1.29]], "pasta"],
+    couscous: ["Couscous", "g", D, [[500, 1.39]], "kikkererwt"],
+    quinoa: ["Quinoa", "g", D, [[300, 2.49]], "kikkererwt"],
+    wittebonen: ["Witte bonen", "g", D, [[400, 0.79]], "feta"],
+    kidneybonen: ["Kidneybonen", "g", D, [[400, 0.79]], "bonen"],
+    kikkererwten: ["Kikkererwten", "g", D, [[400, 0.89]], "kikkererwt"],
+    amandelen: ["Ongezouten amandelen", "g", D, [[100, 1.99], [200, 3.49]], "kikkererwt"],
+    pinda: ["Ongezouten pinda's", "g", D, [[200, 1.49]], "kikkererwt"],
+    tomatenblokjes: ["Tomatenblokjes / polpa (blik)", "g", W, [[400, 0.69]], "tomaat"],
+    passata: ["Passata", "g", W, [[500, 0.99]], "tomaat"],
+    tomatenpuree: ["Tomatenpuree", "g", W, [[70, 0.49]], "tomaat"],
+    zongedroogd: ["Zongedroogde tomaten", "g", W, [[125, 1.79]], "tomaat"],
+    kokosmelk: ["Kokosmelk", "ml", W, [[200, 0.89], [400, 1.29]], "rijst"],
+    currypasta: ["Currypasta", "g", W, [[100, 1.69]], "wortel"],
+    boemboe: ["Boemboe (rendang, bami)", "st.", W, [[1, 1.29]], "linzen"],
+    tacokruiden: ["Tacokruiden (zakje)", "st.", W, [[1, 0.89]], "paprika"],
+    kruidenmix: ["Kruidenmix / sausmix (zakje)", "st.", W, [[1, 0.89]], "kikkererwt"],
+    mais: ["Mais", "g", W, [[300, 0.89]], "mais"],
+    pesto: ["Pesto", "g", W, [[100, 1.99]], "basilicum"],
+    woksaus: ["Woksaus / hoisin", "ml", W, [[160, 1.69]], "bonen"],
+    tandoorisaus: ["Tandoorisaus", "g", W, [[450, 2.49]], "wortel"],
+    harissa: ["Harissa", "g", W, [[90, 1.99]], "tomaat"],
+    hummus: ["Hummus", "g", W, [[175, 1.79]], "kikkererwt"],
+    mangochutney: ["Mangochutney", "g", W, [[200, 1.79]], "mais"],
+    ananas: ["Ananas op sap", "g", W, [[220, 1.19]], "mais"],
+    remoulade: ["Remouladesaus", "ml", W, [[300, 1.49]], "feta"],
+    tortillachips: ["Tortillachips", "st.", W, [[1, 1.29]], "mais"],
+    erwten: ["Erwten (diepvries)", "g", K, [[450, 1.49]], "avocado"],
+    sperziebonen: ["Sperziebonen (diepvries)", "g", K, [[450, 1.49], [1000, 2.79]], "courgette"],
+    wraps: ["Wraps / tortilla's", "st.", B, [[8, 1.79]], "kikkererwt"],
+    platbrood: ["Naan / flatbread", "st.", B, [[4, 1.79]], "kikkererwt"],
+    ciabatta: ["Ciabatta", "st.", B, [[1, 1.49]], "kikkererwt"],
+    brood: ["Brood", "g", B, [[400, 1.79]], "kikkererwt"]
+  };
+  var ING = {};
+  Object.keys(RAW).forEach(function (k) { var r = RAW[k]; ING[k] = { label: r[0], unit: r[1], dept: r[2], packs: r[3], art: r[4] }; });
+
+  // [slug, title, minutes, persons, tags, items, pantry ("waarschijnlijk al in huis")]
+  var P = "picnic", OLIE = "olijfolie", KN = "knoflook", PZ = "peper & zout";
+  var LIST = [
+    ["romige-gnocchi-met-spinazie", "Romige gnocchi met spinazie", 15, 4, ["vega", "snel", "comfort"], { sjalot: 3, parmezaan: 125, spinazie: 400, room: 200, erwten: 200, gnocchi: 1000, citroen: 1 }, [KN, OLIE, PZ]],
+    ["mexicaanse-pasta-met-cheddar", "Mexicaanse pasta met cheddar", 20, 4, ["snel", "comfort"], { gehakt: 250, pasta: 400, cremefraiche: 150, tacokruiden: 1, kaas: 80, passata: 500, mais: 300, paprika: 3 }, [KN, OLIE, PZ]],
+    ["kip-in-rendangsaus-met-rijst-en-boontjes", "Kip in rendangsaus met rijst en boontjes", 15, 4, ["snel"], { kip: 400, sperziebonen: 600, ui: 2, boemboe: 1, rijst: 300, kokosmelk: 250 }, [OLIE]],
+    ["soft-tacos-met-krokante-kip-en-mangosalsa", "Soft tacos met krokante kip en mangosalsa", 20, 4, ["snel"], { wraps: 12, kipschnitzel: 4, rodeui: 1, mango: 2, peterselie: 15, tomaat: 500, komkommer: 1, cremefraiche: 200 }, []],
+    ["ricotta-ravioli-met-spinazie-en-citroen", "Ricotta-ravioli met spinazie en citroen", 20, 4, ["vega", "snel"], { room: 200, parmezaan: 60, spinazie: 600, ravioli: 500, citroen: 1 }, [KN, OLIE, PZ]],
+    ["sticky-mangokip-met-kormarijst-en-komkommersalade", "Sticky mangokip met kormarijst", 20, 4, ["snel"], { kip: 350, rijst: 300, currypasta: 45, mangochutney: 45, komkommer: 2, koriander: 15, limoen: 2, ui: 1 }, [OLIE, PZ]],
+    ["spaghetti-met-boursin-prosciutto-en-tomaatjes", "Spaghetti met Boursin, prosciutto en tomaatjes", 15, 4, ["snel", "comfort"], { pasta: 350, roomkaas: 230, cherrytomaat: 500, spinazie: 200, ui: 1, ham: 110 }, [OLIE, PZ]],
+    ["marry-me-bonenstoof-met-ciabatta", "Marry me-bonenstoof met ciabatta", 20, 4, ["vega", "comfort"], { ciabatta: 1, wittebonen: 800, zongedroogd: 125, champignon: 250, spinazie: 200, room: 200, ui: 2, tomatenpuree: 45 }, [KN, PZ]],
+    ["romige-gele-curry-noedels-met-crispy-kipgehakt", "Gele curry-noedels met crispy kipgehakt", 20, 4, ["snel"], { currypasta: 60, kipgehakt: 500, eieren: 4, bosui: 1, chinesekool: 1, kokosmelk: 250, noedels: 250, limoen: 1 }, [KN, "zonnebloemolie"]],
+    ["boerenkoolstamppot-met-rookworst", "Boerenkoolstamppot met rookworst", 20, 4, ["comfort", "budget"], { boerenkool: 500, aardappel: 1000, melk: 100, rookworst: 1 }, [PZ]],
+    ["andijviestamppot-met-spekjes", "Andijviestamppot met spekjes", 20, 4, ["comfort", "budget"], { andijvie: 600, aardappel: 1000, spekjes: 300 }, []],
+    ["burritos-met-gehakt", "Burrito's met gehakt", 20, 4, ["snel", "budget"], { gehakt: 300, mexgroente: 400, tomatenblokjes: 400, wraps: 8, cremefraiche: 100, tacokruiden: 1 }, [OLIE]],
+    ["hutspot-met-rookworst", "Hutspot met rookworst", 25, 4, ["comfort", "budget"], { aardappel: 1000, hutspotgroente: 1000, melk: 100, rookworst: 2 }, [PZ]],
+    ["spicy-zalmbowl-met-mango-avocadosalsa", "Spicy zalmbowl met mango-avocadosalsa", 20, 4, ["gezond"], { zalm: 500, avocado: 2, mango: 1, limoen: 3, peterselie: 15, rodeui: 1, rijst: 300 }, [OLIE, PZ]],
+    ["bami-goreng-met-kip", "Bami goreng met kip", 15, 4, ["snel", "budget"], { kip: 350, bamigroente: 450, noedels: 250, boemboe: 1 }, ["zonnebloemolie"]],
+    ["kip-ketjap-met-noedels-en-boontjes", "Kip ketjap met noedels en boontjes", 15, 4, ["snel"], { noedels: 250, ui: 2, kip: 350, sperziebonen: 450, gember: 30, limoen: 1 }, []],
+    ["enchiladas-met-gehakt-en-kaas", "Enchilada's met gehakt en kaas", 30, 4, ["comfort"], { wraps: 8, gehakt: 300, tacokruiden: 1, mexgroente: 800, tomatenblokjes: 800, zureroom: 125, kaas: 100, avocado: 2 }, []],
+    ["macaroni-ovenschotel-met-gehakt-en-kaas", "Macaroni-ovenschotel met gehakt en kaas", 25, 4, ["comfort", "budget"], { pasta: 400, gehakt: 300, macaronigroente: 700, kruidenmix: 1, tomatenpuree: 60, kaas: 100 }, [OLIE]],
+    ["quinoasalade-met-halloumi-en-mango", "Quinoasalade met halloumi en mango", 20, 4, ["vega", "gezond", "groente"], { sla: 100, quinoa: 275, halloumi: 400, komkommer: 1, cherrytomaat: 250, mango: 1, citroen: 1, amandelen: 100 }, [OLIE, PZ]],
+    ["couscous-met-halloumi-en-wintergroenten", "Couscous met halloumi en wintergroenten", 20, 4, ["vega", "gezond", "groente"], { couscous: 300, boerenkool: 300, wortel: 400, rodeui: 2, sinaasappel: 1, halloumi: 200, munt: 10 }, [OLIE, PZ]],
+    ["romige-rode-pesto-ravioli-met-cherrytomaatjes", "Rode-pesto-ravioli met cherrytomaatjes", 15, 4, ["vega", "snel"], { ravioli: 500, pesto: 60, room: 250, cherrytomaat: 250, erwten: 300, ui: 1, basilicum: 15 }, [OLIE, PZ]],
+    ["halloumiwraps-met-bietenhummus", "Halloumiwraps met bietenhummus", 15, 4, ["vega", "snel"], { wraps: 8, halloumi: 400, sla: 150, hummus: 175, komkommer: 1 }, []],
+    ["tagliatelle-met-broccoli-courgette-en-geitenkaas", "Tagliatelle met broccoli, courgette en geitenkaas", 15, 4, ["vega", "snel", "groente"], { courgette: 1, pasta: 500, parmezaan: 80, geitenkaas: 100, room: 100, basilicum: 15, broccoli: 1 }, [OLIE, PZ]],
+    ["veggie-fried-rice-met-hoisin-ei", "Veggie fried rice met hoisin-ei", 20, 4, ["vega", "snel", "groente"], { pinda: 15, gember: 15, paprika: 1, koolmix: 150, rijst: 250, sla: 150, woksaus: 30, limoen: 1, eieren: 2 }, [KN, "zonnebloemolie"]],
+    ["groentelasagne-met-zongedroogde-tomaat-en-mozzarella", "Groentelasagne met zongedroogde tomaat", 45, 4, ["vega", "groente", "comfort"], { lasagne: 500, courgette: 1, spinazie: 400, tomatenblokjes: 800, basilicum: 15, mozzarella: 2, cremefraiche: 200, zongedroogd: 215, rodeui: 1 }, [KN, OLIE, PZ]],
+    ["romige-eenpansravioli-met-courgette", "Romige eenpansravioli met courgette", 15, 4, ["vega", "snel"], { ravioli: 500, cherrytomaat: 400, courgette: 1, roomkaas: 125, melk: 150, tomatenpuree: 30 }, []],
+    ["broccolisoep", "Broccolisoep", 30, 4, ["vega", "gezond", "groente", "budget"], { aardappel: 300, bieslook: 10, broccoli: 2, ui: 2 }, [KN, OLIE, PZ]],
+    ["tomatenorzo-met-chorizo-en-geroosterde-aubergine", "Tomatenorzo met chorizo en aubergine", 30, 4, ["groente"], { aubergine: 2, paprika: 1, chorizo: 200, tomatenblokjes: 400, orzo: 275 }, [KN, OLIE, PZ]],
+    ["linguine-met-mini-gehaktballetjes", "Linguine met mini-gehaktballetjes", 20, 4, ["snel", "comfort"], { gehaktballetjes: 250, pasta: 400, rodepeper: 1, peterselie: 15, parmezaan: 40, tomatenblokjes: 400, cherrytomaat: 250, rodeui: 1, courgette: 1 }, [KN, OLIE, PZ]],
+    ["snelle-roerbak-met-gehakt-en-zwartebonensaus", "Roerbak met gehakt en zwartebonensaus", 20, 4, ["snel", "budget"], { gehakt: 300, woksaus: 160, bosui: 1, broccoli: 2, rijst: 300 }, []],
+    ["vegan-shoarmabowl-met-knoflookyoghurt-en-rode-ui-pickle", "Vegan shoarmabowl met knoflookyoghurt", 35, 4, ["vega", "gezond", "groente"], { zoeteaardappel: 1000, spinazie: 200, veganshoarma: 350, tomaat: 400, komkommer: 1, rodeui: 1, yoghurt: 200 }, [KN, OLIE, PZ]],
+    ["snelle-bloemkool-kip-tandoori", "Bloemkool-kip tandoori", 15, 4, ["snel", "gezond"], { kip: 350, tandoorisaus: 450, rijst: 300, komkommer: 1, bloemkool: 1, yoghurt: 100 }, [OLIE]],
+    ["tex-mex-wrap-met-kipgehakt-en-ananassalsa", "Tex-mex wrap met kipgehakt en ananassalsa", 20, 4, ["snel"], { wraps: 8, kipgehakt: 500, tomaat: 300, rodeui: 1, koriander: 15, ananas: 220, zureroom: 125, komkommer: 1, tacokruiden: 1, rodepeper: 1, sla: 200 }, [OLIE, PZ]],
+    ["chili-con-carne-gehaktballetjes-met-limoenrijst", "Chili con carne-balletjes met limoenrijst", 20, 4, ["comfort"], { gehaktballetjes: 300, rijst: 300, tomatenblokjes: 400, zureroom: 125, mais: 150, komkommer: 1, cherrytomaat: 250, tacokruiden: 1, kidneybonen: 400, limoen: 2, kaas: 175 }, []],
+    ["zweedse-gehakballetjes-uit-de-airfryer", "Zweedse gehaktballetjes uit de airfryer", 35, 4, ["comfort"], { aardappel: 800, ui: 1, dille: 15, gehakt: 500, komkommer: 1, kruidenmix: 1 }, []],
+    ["runderreepjes-in-romige-saus", "Runderreepjes in romige saus", 20, 4, ["snel"], { rundvlees: 600, paprika: 2, champignon: 250, ui: 1, roomkaas: 100, rijst: 300, peterselie: 7 }, [OLIE, PZ]],
+    ["korma-zalm-met-komkommeryoghurt-en-kokosrijst", "Korma-zalm met kokosrijst", 25, 4, ["gezond"], { zalm: 390, rijst: 300, currypasta: 30, komkommer: 1, erwten: 200, koriander: 15, limoen: 2, yoghurt: 100, kokosmelk: 250, platbrood: 4 }, [OLIE, PZ]],
+    ["snelle-omeletwrap", "Snelle omeletwrap", 15, 2, ["vega", "snel", "budget"], { eieren: 4, kaas: 20, basilicum: 15, wraps: 2, tomaat: 200, sla: 60 }, []],
+    ["pasta-alfredo-met-kip", "Pasta alfredo met kip", 20, 2, ["snel", "comfort"], { pasta: 150, kip: 300, room: 150, parmezaan: 50, sla: 30 }, [KN, OLIE, PZ]],
+    ["easy-pastasalade", "Easy pastasalade", 10, 4, ["vega", "snel", "budget"], { pasta: 300, komkommer: 1, tomaat: 500, basilicum: 30, rodepeper: 1, spinazie: 125, feta: 80 }, []],
+    ["vega-caesarsalade-met-krokante-kikkererwten", "Vega caesarsalade met krokante kikkererwten", 20, 4, ["vega", "gezond", "groente"], { sla: 300, parmezaan: 20, kikkererwten: 400, brood: 150, sperziebonen: 160, yoghurt: 90 }, [KN, OLIE, PZ]],
+    ["shakshuka-met-harissa-en-gehaktballetjes", "Shakshuka met harissa en gehaktballetjes", 20, 4, ["comfort"], { harissa: 60, gehaktballetjes: 250, platbrood: 2, tomatenblokjes: 400, eieren: 4, dille: 15, paprika: 1, cherrytomaat: 250, yoghurt: 100 }, [OLIE, PZ]],
+    ["kaasschnitzel-met-bloemkool-en-aardappel", "Kaasschnitzel met bloemkool en aardappel", 20, 4, ["comfort"], { kaasschnitzel: 4, bloemkool: 1, aardappel: 600, bieslook: 10 }, [OLIE]],
+    ["lekkerbekjes-met-rode-kool-en-krieltjes", "Lekkerbekjes met rode kool en krieltjes", 35, 4, ["comfort"], { lekkerbekje: 4, aardappel: 900, rodekool: 900, remoulade: 130 }, [OLIE]],
+    ["tex-mex-ovenschotel-met-zoete-aardappel", "Tex-mex ovenschotel met zoete aardappel", 30, 4, ["vega", "comfort"], { vegagehakt: 375, zoeteaardappel: 400, tomatenblokjes: 400, mexgroente: 400, kaas: 150, zureroom: 125, tacokruiden: 1, peterselie: 15, tortillachips: 1 }, [OLIE]]
+  ];
+  var IDS = {"romige-gnocchi-met-spinazie":"67b5c641241ae57be569f221","mexicaanse-pasta-met-cheddar":"632af1ed559cc76e6aedea55","kip-in-rendangsaus-met-rijst-en-boontjes":"6a394bc2bde39c19228818e1","soft-tacos-met-krokante-kip-en-mangosalsa":"667925cb3db0e14d0caa2d37","ricotta-ravioli-met-spinazie-en-citroen":"62ff3573b522c54f5f271ea8","sticky-mangokip-met-kormarijst-en-komkommersalade":"6a394bfafed79645ff003d76","spaghetti-met-boursin-prosciutto-en-tomaatjes":"69fb0b8371f7463e6ec19111","marry-me-bonenstoof-met-ciabatta":"6940364271dd23725b51df4f","romige-gele-curry-noedels-met-crispy-kipgehakt":"6a1ee3de8d45fb1080af78f9","boerenkoolstamppot-met-rookworst":"637c98fb25348633eaecf57a","andijviestamppot-met-spekjes":"634e53c671417a630bd025d4","burritos-met-gehakt":"63108e153847e52334cd2e7d","hutspot-met-rookworst":"63c7c264e4171000b95e8e68","spicy-zalmbowl-met-mango-avocadosalsa":"6a4551dc924d995cb50eadb6","bami-goreng-met-kip":"6287b22d4cadef2101213b7c","kip-ketjap-met-noedels-en-boontjes":"6904d3c52ab9666c0ff7b68f","enchiladas-met-gehakt-en-kaas":"6940392171dd23725b51e3e9","macaroni-ovenschotel-met-gehakt-en-kaas":"692824275e68a202c7553f62","quinoasalade-met-halloumi-en-mango":"64944423f2a0ae0456ef85e2","couscous-met-halloumi-en-wintergroenten":"69144c61a2740f61ba37153b","romige-rode-pesto-ravioli-met-cherrytomaatjes":"69b1250d6e40dc3f123fbc13","halloumiwraps-met-bietenhummus":"648c6bec6c176b07c9d1b16d","tagliatelle-met-broccoli-courgette-en-geitenkaas":"622b4280d493140bc9238135","veggie-fried-rice-met-hoisin-ei":"689b5b0f348c363891b5fcbf","groentelasagne-met-zongedroogde-tomaat-en-mozzarella":"641d8f8f381b9019c5a55fd5","romige-eenpansravioli-met-courgette":"688388a4c553dc3e68e0a8bc","broccolisoep":"64e47cb2cbb86d41a8005de4","tomatenorzo-met-chorizo-en-geroosterde-aubergine":"63ab1cc54860165bc56a15c3","linguine-met-mini-gehaktballetjes":"692833222d5d827f88125401","snelle-roerbak-met-gehakt-en-zwartebonensaus":"64a6c7b75755fb5e4d931553","vegan-shoarmabowl-met-knoflookyoghurt-en-rode-ui-pickle":"63c1669d865b185a7f73f1a9","snelle-bloemkool-kip-tandoori":"6a394b82fed79645ff003cb6","tex-mex-wrap-met-kipgehakt-en-ananassalsa":"69d75713fe481941fcb84fe2","chili-con-carne-gehaktballetjes-met-limoenrijst":"69b124de6e40dc3f123fbbde","zweedse-gehakballetjes-uit-de-airfryer":"685272601568f61cd320eebc","runderreepjes-in-romige-saus":"6a8f097ae5ccd877c9aa19b4","korma-zalm-met-komkommeryoghurt-en-kokosrijst":"6a55ecbe7a16df65a3bb08de","snelle-omeletwrap":"689b5ad28d1fd9370a434153","pasta-alfredo-met-kip":"689b5ab5348c363891b5fc5f","easy-pastasalade":"689b5aec348c363891b5fc9a","vega-caesarsalade-met-krokante-kikkererwten":"689b5b088d1fd9370a43418e","shakshuka-met-harissa-en-gehaktballetjes":"69faf54b534bad06255a9bde","kaasschnitzel-met-bloemkool-en-aardappel":"6940393c71dd23725b51e41c","lekkerbekjes-met-rode-kool-en-krieltjes":"6a8c4e968ed18d72023aef3c","tex-mex-ovenschotel-met-zoete-aardappel":"687753e9575ebc1bf8f19958"};
+  var RECIPES = LIST.map(function (r) {
+    return { id: r[0], title: r[1], minutes: r[2], persons: r[3], tags: r[4], items: r[5], pantry: r[6], source: P, author: "picnic",
+      url: IDS[r[0]] ? "https://picnic.app/nl/recepten/" + IDS[r[0]] + "/" + r[0] : null };
+  });
+
+  // Example community members and their recipes (fictional, written for this prototype)
+  var USERS = {
+    picnic: { id: "picnic", name: "Picnic", bio: "Recepten van picnic.app. Bekijk de bereiding op hun website.", joined: null, org: true },
+    noor: { id: "noor", name: "Noor", bio: "Kookt vooral vegetarisch en houdt van curry's met veel groente.", joined: "2026-03-02" },
+    jip: { id: "jip", name: "Jip", bio: "Student. Koken voor weinig geld en zonder gedoe.", joined: "2026-06-18" },
+    lotte: { id: "lotte", name: "Lotte", bio: "Ontbijt als avondeten? Prima. Eieren in alles.", joined: "2026-08-09" }
+  };
+  [
+    ["c-zoete-curry", "noor", "Zoete aardappelcurry met kikkererwten", 30, 4, ["vega", "gezond", "groente"], { zoeteaardappel: 600, kikkererwten: 400, kokosmelk: 400, currypasta: 45, spinazie: 200, rijst: 300, ui: 1 }, ["knoflook", "olie"], "2026-09-28T18:10:00Z", null, "Fruit de ui, voeg de currypasta toe en daarna de zoete aardappel in blokjes. Kokosmelk erbij en 15 minuten laten pruttelen. Kikkererwten en spinazie op het laatst. Met rijst."],
+    ["c-tomatensoep", "noor", "Romige tomatensoep met basilicum", 25, 4, ["vega", "budget"], { tomaat: 1000, ui: 2, room: 200, basilicum: 15, brood: 400 }, ["peper & zout", "olie"], "2026-10-06T16:40:00Z", "2026-10-09T09:15:00Z", "Tomaten en ui 10 minuten zacht laten worden, pureren, room en basilicum erdoor. Brood erbij."],
+    ["c-kip-traybake", "jip", "Kip-traybake met paprika en krieltjes", 40, 4, ["comfort"], { kip: 600, paprika: 3, aardappel: 800, rodeui: 2, citroen: 1 }, ["olie", "paprikapoeder"], "2026-10-02T17:30:00Z", null, "Alles in stukken op een bakplaat, olie en kruiden erover, 35 minuten op 200 graden. Citroen erover."],
+    ["c-studentenpasta", "jip", "Studentenpasta met gehakt en courgette", 20, 2, ["snel", "budget"], { pasta: 250, gehakt: 300, courgette: 1, tomatenblokjes: 400, kaas: 50 }, ["peper & zout"], "2026-10-10T19:05:00Z", null, "Gehakt rul bakken, courgette erbij, tomaat erbij. Door de pasta en kaas erover."],
+    ["c-shakshuka", "lotte", "Shakshuka met feta en spinazie", 25, 2, ["vega", "snel"], { eieren: 4, tomatenblokjes: 400, paprika: 1, ui: 1, feta: 100, spinazie: 100, platbrood: 2 }, ["komijn", "olie"], "2026-10-12T08:20:00Z", null, "Ui en paprika bakken, tomaat erbij, kuiltjes maken en de eieren erin. Deksel erop tot het eiwit gestold is. Feta en spinazie erover."]
+  ].forEach(function (c) {
+    RECIPES.push({ id: c[0], author: c[1], title: c[2], minutes: c[3], persons: c[4], tags: c[5], items: c[6], pantry: c[7], createdAt: c[8], updatedAt: c[9], notes: c[10], source: "community", url: null });
+  });
+
+  var STORES = [
+    { id: "ah", name: "Albert Heijn", level: 1.08, bio: 1 },
+    { id: "jumbo", name: "Jumbo", level: 1.02, bio: 0.95 },
+    { id: "lidl", name: "Lidl", level: 0.9, bio: 0.85 },
+    { id: "aldi", name: "Aldi", level: 0.88, bio: 0.75 },
+    { id: "plus", name: "Plus", level: 1.04, bio: 0.9 },
+    { id: "dirk", name: "Dirk", level: 0.93, bio: 0.6 }
+  ];
+
+  function hash(s) { var x = 7; for (var i = 0; i < s.length; i++) x = (x * 33 + s.charCodeAt(i)) % 100003; return x; }
+  // price of one pack at a store; null when not sold (bio not available)
+  function packPrice(store, ingId, size, base, bio) {
+    var h = hash(store.id + ingId + size), wob = 0.92 + (h % 17) / 100;
+    if (bio) { if ((h % 100) / 100 > store.bio) return null; return +(base * store.level * wob * 1.38).toFixed(2); }
+    return +(base * store.level * wob).toFixed(2);
+  }
+  // unit conversions for the "eigen recept" form
+  var UNITS = { g: { to: "g", f: 1 }, kg: { to: "g", f: 1000 }, ml: { to: "ml", f: 1 }, l: { to: "ml", f: 1000 }, el: { to: "g", f: 15 }, tl: { to: "g", f: 5 }, "st.": { to: "st.", f: 1 }, bos: { to: "bos", f: 1 } };
+  return { ING: ING, RECIPES: RECIPES, USERS: USERS, STORES: STORES, packPrice: packPrice, UNITS: UNITS };
+})();
+
+</script>
+<script>
+(function () {
+  var React = window.React, h = React.createElement, useState = React.useState, useMemo = React.useMemo, useEffect = React.useEffect;
+  var C = window.CheapEat, D = CE_DATA, eur = C.eur;
+  var DAYS = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
+  var DAYS_S = ["ma", "di", "wo", "do", "vr", "za", "zo"];
+  var DATES = [12, 13, 14, 15, 16, 17, 18];
+  var CARBS = ["pasta", "gnocchi", "ravioli", "rijst", "aardappel", "zoeteaardappel", "noedels", "couscous", "quinoa", "orzo", "lasagne", "wraps", "platbrood"];
+  var STORE_KEY = "cheapeat-proto-v2";
+
+  /* ---------------- recipes (Picnic + eigen) ---------------- */
+  function prep(r) {
+    var keys = Object.keys(r.items).filter(function (k) { return D.ING[k]; });
+    var base = keys.filter(function (k) { return CARBS.indexOf(k) > -1; })[0] || keys[0];
+    var art = [base && D.ING[base] ? D.ING[base].art : "rijst"];
+    keys.forEach(function (k) { var a = D.ING[k].art; if (k !== base && art.indexOf(a) < 0 && art.length < 4) art.push(a); });
+    var t = 0; keys.forEach(function (k) { var p = D.ING[k].packs[0]; t += r.items[k] / p[0] * p[1] * 1.04; });
+    var picnicPhoto = (window.CE_PHOTOS || {})[r.id];
+    return Object.assign({}, r, { ingredients: art, pricePP: t / r.persons, vega: r.tags.indexOf("vega") > -1, photo: r.photo || picnicPhoto || null, credit: !r.photo && picnicPhoto ? "Foto: Picnic" : null });
+  }
+  var BASE = D.RECIPES.map(prep);
+  var REG = {}; BASE.forEach(function (r) { REG[r.id] = r; });
+  function rec(id) { return REG[id]; }
+  function allRecipes(s) { return BASE.concat(s.custom.map(function (c) { return REG[c.id]; })); }
+
+  /* ---------------- engine ---------------- */
+  function need(plan, persons) {
+    var n = {};
+    plan.forEach(function (id, day) {
+      var r = id && rec(id); if (!r) return;
+      Object.keys(r.items).forEach(function (k) {
+        var ing = D.ING[k]; if (!ing) return;
+        var q = r.items[k] * persons / r.persons;
+        if (ing.unit === "st." || ing.unit === "bos") q = Math.ceil(q - 0.01); else q = Math.round(q);
+        n[k] = n[k] || { qty: 0, days: [] }; n[k].qty += q; if (n[k].days.indexOf(day) < 0) n[k].days.push(day);
+      });
+    });
+    return n;
+  }
+  function buy(store, k, qty, bio, noFallback) {
+    var ing = D.ING[k], opts = ing.packs.map(function (p) { return { size: p[0], price: D.packPrice(store, k, p[0], p[1], bio) }; }).filter(function (o) { return o.price != null; });
+    var bioOk = bio;
+    if (!opts.length) {
+      if (noFallback) return null;
+      var alt = D.STORES.filter(function (o) { return o !== store; }).map(function (o) { return buy(o, k, qty, true, true); }).filter(Boolean).sort(function (a, b) { return a.cost - b.cost; })[0];
+      if (alt) return Object.assign({}, alt, { elsewhere: true });
+      bioOk = false; opts = ing.packs.map(function (p) { return { size: p[0], price: D.packPrice(store, k, p[0], p[1], false) }; });
+    }
+    var best = null, big = opts[opts.length - 1], small = opts[0];
+    for (var nb = 0; nb <= Math.ceil(qty / big.size); nb++) {
+      var rest = Math.max(0, qty - nb * big.size), ns = opts.length > 1 ? Math.ceil(rest / small.size) : 0;
+      var cost = nb * big.price + ns * small.price, got = nb * big.size + ns * small.size;
+      if (got < qty) continue;
+      if (!best || cost < best.cost - 1e-9) { best = { cost: cost, left: got - qty, packs: [] }; if (nb) best.packs.push([big.size, nb]); if (ns) best.packs.push([small.size, ns]); }
+    }
+    best.bio = bioOk; best.naive = Math.ceil(qty / small.size) * small.price; best.unit = ing.unit;
+    return best;
+  }
+  function basket(store, n, bio) {
+    var total = 0, lines = {}, nonBio = 0;
+    Object.keys(n).forEach(function (k) { var b = buy(store, k, n[k].qty, bio); total += b.cost; lines[k] = b; if (bio && (b.elsewhere || !b.bio)) nonBio++; });
+    return { store: store, total: total, lines: lines, nonBio: nonBio };
+  }
+  function rank(n, bio) { return D.STORES.map(function (s) { return basket(s, n, bio); }).sort(function (a, b) { return a.total - b.total; }); }
+  function cheapest(plan, persons, bio) { var n = need(plan, persons); if (!Object.keys(n).length) return 0; return rank(n, bio)[0].total; }
+  function withDay(plan, day, id) { var p = plan.slice(); p[day] = id; return p; }
+  function extraFor(plan, day, id, persons, bio) { return cheapest(withDay(plan, day, id), persons, bio) - cheapest(withDay(plan, day, null), persons, bio); }
+  function newIngs(plan, day, id) {
+    var have = {}; plan.forEach(function (x, d) { var r = x && rec(x); if (r && d !== day) Object.keys(r.items).forEach(function (k) { have[k] = 1; }); });
+    var r = rec(id), shared = [], fresh = [];
+    Object.keys(r.items).forEach(function (k) { if (D.ING[k]) (have[k] ? shared : fresh).push(k); });
+    return { shared: shared, fresh: fresh };
+  }
+  function allowed(r, s) { return !s.disliked[r.id] && (s.diet !== "vega" || r.vega); }
+  function suggestions(s, day) {
+    return allRecipes(s).filter(function (r) { return s.plan.indexOf(r.id) < 0 && allowed(r, s); })
+      .map(function (r) { return { r: r, extra: extraFor(s.plan, day, r.id, s.persons, s.bio), ni: newIngs(s.plan, day, r.id), liked: !!s.liked[r.id] }; })
+      .sort(function (a, b) { return (a.extra - (a.liked ? 0.75 : 0) - fanScore(s, a.r.id) * 0.75) - (b.extra - (b.liked ? 0.75 : 0) - fanScore(s, b.r.id) * 0.75); });
+  }
+  function fmtNum(q) { return (Math.round(q * 10) / 10).toString().replace(".", ","); }
+  function fmtQty(q, unit) { if (unit === "g" && q >= 1000) return fmtNum(q / 1000) + " kg"; if (unit === "ml" && q >= 1000) return fmtNum(q / 1000) + " l"; return fmtNum(q) + " " + unit; }
+  function packsText(b) { return b.packs.map(function (p) { return p[1] + " × " + fmtQty(p[0], b.unit); }).join(" + "); }
+  function nameOf(k) { return D.ING[k].label.split(" (")[0].split(" / ")[0].toLowerCase(); }
+  function shortLabel(k) { return D.ING[k].label.split(" (")[0]; }
+  function namesOf(ks) { return ks.map(nameOf); }
+  function joinNl(a) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " en " + a[a.length - 1]; }
+  function fmtDate(iso) { if (!iso) return ""; var d = new Date(iso); try { return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }); } catch (e) { return d.toDateString(); } }
+  // Dutch possessive: Evy's, Noors, Lottes, Thomas'
+  function possessive(name) { var n = (name || "").trim(), l = n.slice(-1).toLowerCase(); if (/[sxz]/.test(l)) return n + "\u2019"; if (/[aiouy]/.test(l)) return n + "\u2019s"; return n + "s"; }
+  function cookbook(name) { return possessive((name || "").trim().split(/\s+/)[0]) + " Kookboek"; }
+  function authorOf(r, s) {
+    if (r.source === "eigen") return { id: "me", name: s.account ? s.account.name : "Jij", me: true };
+    return D.USERS[r.author] || D.USERS.picnic;
+  }
+  function setKey(obj, k, v) { var o = Object.assign({}, obj); if (v) o[k] = v; else delete o[k]; return o; }
+
+  /* ---------------- taste profile ---------------- */
+  var TAGNAME = { vega: "vegetarisch", snel: "snel klaar", comfort: "comfort food", gezond: "gezond", groente: "veel groente", budget: "budget" };
+  function profile(s) {
+    var liked = allRecipes(s).filter(function (r) { return s.liked[r.id]; }), tags = {}, ings = {};
+    liked.forEach(function (r) { r.tags.forEach(function (t) { tags[t] = (tags[t] || 0) + 1; }); Object.keys(r.items).forEach(function (k) { if (D.ING[k] && D.ING[k].dept !== "Kruiden") ings[k] = (ings[k] || 0) + 1; }); });
+    var topIngs = Object.keys(ings).filter(function (k) { return ings[k] > 1; }).sort(function (a, b) { return ings[b] - ings[a]; }).slice(0, 5);
+    var topTags = Object.keys(tags).sort(function (a, b) { return tags[b] - tags[a]; }).slice(0, 3);
+    return { tags: tags, ings: ings, topIngs: topIngs, topTags: topTags, count: liked.length };
+  }
+  function profileLine(prof) { return prof.topIngs.length ? joinNl(namesOf(prof.topIngs).slice(0, 3)) : (prof.topTags.map(function (t) { return TAGNAME[t]; }).join(" en ") || "lekker eten"); }
+  function affinity(r, prof, prefs) {
+    var sc = 0;
+    r.tags.forEach(function (t) { sc += (prof.tags[t] || 0) * 0.4 + (prefs[t] ? 1 : 0); });
+    Object.keys(r.items).forEach(function (k) { sc += (prof.ings[k] || 0) * 0.25; });
+    return sc;
+  }
+  function planWeek(s, opts) {
+    var prof = profile(s), plan = [null, null, null, null, null, null, null];
+    var cands = allRecipes(s).filter(function (r) { return allowed(r, s) && !(opts.prefs.vega && !r.vega); });
+    for (var d = 0; d < opts.days; d++) {
+      var best = null;
+      cands.forEach(function (r) {
+        if (plan.indexOf(r.id) > -1) return;
+        var ex = extraFor(plan, d, r.id, s.persons, s.bio);
+        var score = affinity(r, prof, opts.prefs) + (s.liked[r.id] ? 2.5 : 0) + (partnerFans(s, r.id).length ? (s.liked[r.id] ? 2 : 1.5) : 0) - ex * 0.45;
+        if (!best || score > best.score) best = { id: r.id, score: score };
+      });
+      if (best) plan[d] = best.id;
+    }
+    var n = need(plan, s.persons), top = Object.keys(n).length ? rank(n, s.bio)[0] : null;
+    return { plan: plan, total: top ? top.total : 0, store: top ? top.store.name : "", sharedCount: Object.keys(n).filter(function (k) { return n[k].days.length > 1; }).length };
+  }
+
+  /* ---------------- shared bits ---------------- */
+  function Eyebrow(p) { return h("div", { className: "label eyebrow" }, p.children); }
+  function Section(p) { return h("section", { className: "sec" }, p.title ? h("div", { className: "sec-head" }, h("h2", { className: "heading" }, p.title), p.aside || null) : null, p.children); }
+  function Sheet(p) {
+    return h("div", { className: "sheet-back", onClick: p.onClose },
+      h("div", { className: "sheet" + (p.tall ? " sheet-tall" : ""), role: "dialog", "aria-label": p.label, onClick: function (e) { e.stopPropagation(); } },
+        h("div", { className: "sheet-grip" }),
+        h("div", { className: "sheet-head" }, h("div", null, p.eyebrow ? h(Eyebrow, null, p.eyebrow) : null, h("h2", { className: "title" }, p.title)), h(C.IconButton, { icon: "x", label: "Sluiten", onClick: p.onClose })),
+        p.children));
+  }
+  function TestCard(p) {
+    return h("div", { className: "testcard" },
+      h("svg", { className: "testcard-blobs", viewBox: "0 0 360 220", preserveAspectRatio: "xMidYMid slice", "aria-hidden": true },
+        h("path", { d: C.blobPath(330, 30, 64, .5, "t1", 7), fill: "var(--lime)" }), h("path", { d: C.blobPath(320, 210, 44, .5, "t2", 6), fill: "var(--forest)", opacity: .18 })),
+      h(Eyebrow, null, p.done ? "Je smaakprofiel" : "Smaaktest · 2 minuten"),
+      h("h2", { className: "display-l testcard-title" }, p.done ? "Je houdt van " + p.done : "Wat ga je deze week eten?"),
+      h("p", null, p.done ? "Zin in iets anders? Doe de test opnieuw en we plannen een nieuwe week." : "Swipe 12 recepten en beantwoord een paar vragen. Wij plannen je hele week."),
+      h(C.Button, { variant: "primary", trailingIcon: "arrow", onClick: p.onStart }, p.done ? "Doe de test opnieuw" : "Start de test"));
+  }
+
+  function LikeButton(p) {
+    var on = !!p.s.liked[p.r.id];
+    return h("button", { type: "button", className: "likebtn", "aria-pressed": on, "aria-label": on ? p.r.title + " niet meer liken" : p.r.title + " liken",
+      onClick: function (e) { e.stopPropagation(); p.set({ liked: setKey(p.s.liked, p.r.id, !on), disliked: setKey(p.s.disliked, p.r.id, false), toast: on ? "Uit je gelikete recepten gehaald" : "Toegevoegd aan je gelikete recepten" }); } },
+      h("svg", { width: 22, height: 22, viewBox: "0 0 24 24", "aria-hidden": true }, h("path", { d: "M12 20s-7.5-4.5-7.5-10A4.5 4.5 0 0 1 12 7.2 4.5 4.5 0 0 1 19.5 10c0 5.5-7.5 10-7.5 10z", fill: on ? "currentColor" : "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinejoin: "round" })));
+  }
+
+  /* ---------------- accounts: real e-mail codes when CE_API (Supabase) is present, demo codes otherwise ---------------- */
+  var API = window.CE_API || null;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function newCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
+  function nameFromEmail(e) { var n = e.split("@")[0].split(/[._-]/)[0]; return n.charAt(0).toUpperCase() + n.slice(1); }
+  // a demo partner's likes, used when an invite is "accepted" in the prototype
+  var PARTNER_LIKES = ["romige-gnocchi-met-spinazie", "spaghetti-met-boursin-prosciutto-en-tomaatjes", "halloumiwraps-met-bietenhummus", "burritos-met-gehakt", "tex-mex-wrap-met-kipgehakt-en-ananassalsa", "quinoasalade-met-halloumi-en-mango", "marry-me-bonenstoof-met-ciabatta", "korma-zalm-met-komkommeryoghurt-en-kokosrijst", "ricotta-ravioli-met-spinazie-en-citroen", "snelle-bloemkool-kip-tandoori"];
+  function partners(s) { return (s.household || []).filter(function (m) { return m.status === "active"; }); }
+  function partnerFans(s, id) { return partners(s).filter(function (m) { return m.liked && m.liked[id]; }).map(function (m) { return m.name; }); }
+  function fanBadge(s, id) {
+    var fans = partnerFans(s, id); if (!fans.length) return null;
+    return { tone: "grass", text: s.liked[id] ? "Jullie allebei lekker" : joinNl(fans) + " vindt dit lekker" };
+  }
+  function fanScore(s, id) { var f = partnerFans(s, id).length; return f ? (s.liked[id] ? 2 : 1) : 0; }
+
+  function DemoCode(p) {
+    return h("div", { className: "demo-note", role: "note" }, h(C.Icon, { name: "spark", size: 18 }),
+      h("span", null, "Prototype: er wordt geen echte e-mail verstuurd. Je code is ", h("b", { className: "num" }, p.code), "."));
+  }
+  function CodeStep(p) {
+    var cs = useState(""), code = cs[0], es = useState(null), err = es[0], rs = useState(30), wait = rs[0];
+    useEffect(function () { if (wait <= 0) return; var t = setTimeout(function () { rs[1](wait - 1); }, 1000); return function () { clearTimeout(t); }; }, [wait]);
+    var bs = useState(false), busy = bs[0];
+    function check(v) {
+      if (!p.verify) { if (v === p.code) p.ok(); else es[1]("Deze code klopt niet. Controleer je e-mail of vraag een nieuwe code aan."); return; }
+      if (busy) return; bs[1](true); es[1](null);
+      p.verify(v).then(function () { bs[1](false); p.ok(); }, function (e) { bs[1](false); es[1](e.message || String(e)); });
+    }
+    return h(React.Fragment, null,
+      h("h1", { className: "display-l" }, "Vul je code in"),
+      h("p", null, "We hebben een code van 6 cijfers gestuurd naar ", h("b", null, p.email), ".", API ? " Niets ontvangen? Kijk ook in je spam." : ""),
+      h(C.CodeInput, { value: code, error: !!err, onChange: function (v) { cs[1](v); es[1](null); }, onComplete: check }),
+      err ? h("p", { className: "ce-field-msg", role: "alert" }, err) : null,
+      API ? null : h(DemoCode, { code: p.code }),
+      h("div", { className: "auth-links" },
+        h("button", { type: "button", className: "linkbtn", disabled: wait > 0, onClick: function () { Promise.resolve(p.resend()).then(function () { rs[1](60); cs[1](""); es[1](null); }, function (e) { es[1](e.message || String(e)); }); } }, wait > 0 ? "Nieuwe code over " + wait + " s" : "Stuur een nieuwe code"),
+        p.changeEmail ? h("button", { type: "button", className: "linkbtn", onClick: p.changeEmail }, "Ander e-mailadres") : null),
+      h("div", { className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "arrow", disabled: code.length < 6, loading: busy, onClick: function () { check(code); } }, "Bevestigen")));
+  }
+  function Auth(p) {
+    var st = useState({ step: "welcome", mode: "signup", email: "", name: "", code: "" }), a = st[0], es = useState(null), err = es[0];
+    function upd(o) { st[1](function (prev) { return Object.assign({}, prev, o); }); }
+    if (a.step === "welcome") return h("div", { className: "hero" },
+      h("svg", { className: "hero-blobs", viewBox: "0 0 390 844", preserveAspectRatio: "xMidYMid slice", "aria-hidden": true },
+        h("path", { d: C.blobPath(340, 120, 90, .5, "a", 7), fill: "var(--lime)" }),
+        h("path", { d: C.blobPath(40, 470, 70, .55, "b", 7), fill: "var(--lime)", opacity: .8 }),
+        h("path", { d: C.blobPath(330, 560, 50, .5, "c", 6), fill: "var(--forest)", opacity: .25 })),
+      h("div", { className: "hero-top" }, h("span", { className: "wordmark" }, "Cheap-eat")),
+      h("h1", { className: "display-xl hero-title" }, "Slim eten, goedkoop gehaald."),
+      h("div", { className: "hero-panel" },
+        h("p", null, "Plan je week, kook met wat je al hebt en zie meteen waar je hele lijstje het goedkoopst is."),
+        h(C.Button, { variant: "grass", size: "lg", block: true, trailingIcon: "arrow", onClick: function () { upd({ step: "email", mode: "signup" }); } }, "Account aanmaken"),
+        h(C.Button, { variant: "ghost", size: "lg", block: true, className: "btn-on-forest", onClick: function () { upd({ step: "email", mode: "login" }); } }, "Inloggen")));
+    var back = h(C.IconButton, { icon: "back", label: "Terug", onClick: function () { es[1](null); upd({ step: a.step === "code" ? "email" : a.step === "name" ? "welcome" : "welcome" }); } });
+    var body;
+    if (a.step === "email") {
+      var send = function () {
+        var e = a.email.trim().toLowerCase();
+        if (!EMAIL_RE.test(e)) return es[1]("Vul een geldig e-mailadres in, zoals naam@voorbeeld.nl.");
+        es[1](null);
+        if (!API) return upd({ email: e, code: newCode(), step: "code" });
+        upd({ busy: true });
+        API.sendCode(e, a.mode === "signup").then(function () { upd({ email: e, step: "code", busy: false }); }, function (er) { upd({ busy: false }); es[1](er.message); });
+      };
+      body = [
+        h("h1", { key: "t", className: "display-l" }, a.mode === "signup" ? "Maak je account aan" : "Welkom terug"),
+        h("p", { key: "p" }, a.mode === "signup" ? "Je krijgt een code per e-mail, geen wachtwoord nodig." : "Vul je e-mailadres in. We sturen je een code om in te loggen."),
+        h(C.TextField, { key: "e", id: "auth-email", type: "email", inputMode: "email", label: "E-mailadres", placeholder: "naam@voorbeeld.nl", value: a.email, error: err, onChange: function (ev) { upd({ email: ev.target.value }); es[1](null); } }),
+        h("div", { key: "c", className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "arrow", loading: !!a.busy, onClick: send }, "Stuur code")),
+        h("button", { key: "s", type: "button", className: "linkbtn center-link", onClick: function () { es[1](null); upd({ mode: a.mode === "signup" ? "login" : "signup" }); } }, a.mode === "signup" ? "Heb je al een account? Inloggen" : "Nog geen account? Maak er een aan")];
+    } else if (a.step === "code") {
+      body = h(CodeStep, { email: a.email, code: a.code, changeEmail: function () { upd({ step: "email" }); },
+        resend: function () { if (API) return API.sendCode(a.email, a.mode === "signup"); upd({ code: newCode() }); },
+        verify: API ? function (code) { return API.verify(a.email, code); } : null,
+        ok: function () {
+          if (API) {
+            return API.load().then(function (data) {
+              if (data && data.account) p.done(Object.assign({}, data.account, { email: a.email }), "login", data);
+              else upd({ step: "name", name: a.name || nameFromEmail(a.email) });
+            }, function (er) { es[1](er.message); });
+          }
+          if (a.mode === "login") { var known = p.known && p.known.email === a.email ? p.known : null; p.done({ name: known ? known.name : nameFromEmail(a.email), email: a.email }, "login"); }
+          else upd({ step: "name", name: a.name || nameFromEmail(a.email) });
+        } });
+    } else {
+      body = [
+        h("h1", { key: "t", className: "display-l" }, "Hoe heet je?"),
+        h("p", { key: "p" }, "Je e-mailadres ", h("b", null, a.email), " is bevestigd."),
+        h(C.TextField, { key: "n", id: "auth-name", label: "Voornaam", value: a.name, error: err, onChange: function (ev) { upd({ name: ev.target.value }); es[1](null); } }),
+        h("div", { key: "c", className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "arrow", onClick: function () { if (!a.name.trim()) return es[1]("Vul je voornaam in."); p.done({ name: a.name.trim(), email: a.email }, "signup"); } }, "Account aanmaken"))];
+    }
+    return h("div", { className: "screen auth" },
+      h("div", { className: "onboard-top" }, back, h("div", { className: "ce-steps", style: { width: 72 } }, h("i", { "data-on": true }), h("i", { "data-on": a.step !== "email" }), h("i", { "data-on": a.step === "name" }))),
+      h("div", { className: "stack" }, body));
+  }
+
+  /* ---------------- settings & household sheets ---------------- */
+  function EditNameSheet(p) {
+    var ns = useState(p.s.account.name), es = useState(null);
+    return h(Sheet, { label: "Naam wijzigen", title: "Naam wijzigen", onClose: p.close },
+      h(C.TextField, { id: "set-name", label: "Voornaam", value: ns[0], error: es[0], onChange: function (e) { ns[1](e.target.value); es[1](null); } }),
+      h(C.Button, { block: true, size: "lg", onClick: function () { if (!ns[0].trim()) return es[1]("Vul je voornaam in."); p.save({ name: ns[0].trim() }); } }, "Opslaan"));
+  }
+  function EditEmailSheet(p) {
+    var st = useState({ step: "email", email: "", code: "" }), a = st[0], es = useState(null);
+    function upd(o) { st[1](function (prev) { return Object.assign({}, prev, o); }); }
+    return h(Sheet, { label: "E-mailadres wijzigen", title: "E-mailadres wijzigen", onClose: p.close, tall: true },
+      a.step === "email" ? h(React.Fragment, null,
+        h("p", { className: "small muted" }, "Nu: " + p.s.account.email + ". We sturen een code naar je nieuwe adres om het te bevestigen."),
+        h(C.TextField, { id: "set-email", type: "email", inputMode: "email", label: "Nieuw e-mailadres", placeholder: "naam@voorbeeld.nl", value: a.email, error: es[0], onChange: function (e) { upd({ email: e.target.value }); es[1](null); } }),
+        h(C.Button, { block: true, size: "lg", onClick: function () { var e = a.email.trim().toLowerCase(); if (!EMAIL_RE.test(e)) return es[1]("Vul een geldig e-mailadres in."); if (e === p.s.account.email) return es[1]("Dit is al je e-mailadres."); if (!API) return upd({ email: e, code: newCode(), step: "code" }); API.changeEmail(e).then(function () { upd({ email: e, step: "code" }); }, function (er) { es[1](er.message); }); } }, "Stuur code"))
+      : h("div", { className: "stack" }, h(CodeStep, { email: a.email, code: a.code, resend: function () { if (API) return API.changeEmail(a.email); upd({ code: newCode() }); }, verify: API ? function (code) { return API.verifyEmailChange(a.email, code); } : null, changeEmail: function () { upd({ step: "email" }); }, ok: function () { p.save({ email: a.email }); } })));
+  }
+  function InviteSheet(p) {
+    var es = useState(""), email = es[0], er = useState(null);
+    function send() {
+      var e = email.trim().toLowerCase();
+      if (!EMAIL_RE.test(e)) return er[1]("Vul een geldig e-mailadres in.");
+      if (e === p.s.account.email) return er[1]("Dit is je eigen e-mailadres.");
+      if ((p.s.household || []).some(function (m) { return m.email === e; })) return er[1]("Deze persoon zit al in je huishouden.");
+      p.invite({ email: e, name: nameFromEmail(e), status: "pending", liked: {} });
+    }
+    return h(Sheet, { label: "Iemand toevoegen", title: "Iemand aan je huishouden toevoegen", onClose: p.close },
+      h("p", { className: "small muted" }, "Voeg je partner of huisgenoot toe met hun e-mailadres. Zodra die de uitnodiging accepteert, zie je welke recepten jullie allebei lekker vinden en plant de app daar rekening mee."),
+      h(C.TextField, { id: "inv-email", type: "email", inputMode: "email", label: "E-mailadres", placeholder: "partner@voorbeeld.nl", value: email, error: er[0], onChange: function (e) { es[1](e.target.value); er[1](null); } }),
+      h(C.Button, { block: true, size: "lg", trailingIcon: "arrow", onClick: send }, "Uitnodiging versturen"));
+  }
+
+  /* ---------------- onboarding ---------------- */
+  function Onboarding(p) {
+    var st = useState(p.startStep || 0), step = st[0], setStep = st[1], s = p.s, set = p.set;
+    if (step === 0) return h("div", { className: "hero" },
+      h("svg", { className: "hero-blobs", viewBox: "0 0 390 844", preserveAspectRatio: "xMidYMid slice", "aria-hidden": true },
+        h("path", { d: C.blobPath(340, 120, 90, .5, "a", 7), fill: "var(--lime)" }),
+        h("path", { d: C.blobPath(40, 470, 70, .55, "b", 7), fill: "var(--lime)", opacity: .8 }),
+        h("path", { d: C.blobPath(330, 560, 50, .5, "c", 6), fill: "var(--forest)", opacity: .25 })),
+      h("div", { className: "hero-top" }, h("span", { className: "wordmark" }, "Cheap-eat"), h("div", { className: "ce-steps", style: { width: 72 } }, h("i", { "data-on": true }), h("i"), h("i"))),
+      h("h1", { className: "display-xl hero-title" }, "Slim eten, goedkoop gehaald."),
+      h("div", { className: "hero-panel" },
+        h("p", null, "Plan je week, kook met wat je al hebt en zie meteen waar je hele lijstje het goedkoopst is."),
+        h(C.Button, { variant: "grass", size: "lg", block: true, trailingIcon: "arrow", onClick: function () { setStep(1); } }, "Aan de slag")));
+    var body = step === 1 ? [
+      h("h1", { key: "t", className: "display-l" }, "Met hoeveel personen eet je?"),
+      h("div", { key: "s", className: "center-row" }, h(C.Stepper, { value: s.persons, onChange: function (v) { set({ persons: v }); }, unit: "pers.", label: "Aantal personen" })),
+      h("h2", { key: "h", className: "heading" }, "Wat vind je het belangrijkst?"),
+      h("div", { key: "c", className: "chips" }, [["besparen", "Besparen"], ["gezond", "Gezond"], ["snel", "Snel klaar"], ["afwisseling", "Afwisseling"]].map(function (o) {
+        return h(C.Chip, { key: o[0], selected: s.priority === o[0], onClick: function () { set({ priority: o[0] }); } }, o[1]); }))
+    ] : [
+      h("h1", { key: "t", className: "display-l" }, "Wat eet je graag?"),
+      h("div", { key: "c", className: "chips" }, [["alles", "Alles"], ["flexi", "Flexitarisch"], ["vega", "Vegetarisch"]].map(function (o) {
+        return h(C.Chip, { key: o[0], selected: s.diet === o[0], onClick: function () { set({ diet: o[0] }); } }, o[1]); })),
+      h(C.Toggle, { key: "b", label: "Alleen biologisch", description: "We zoeken waar je bio-mandje het goedkoopst is", checked: s.bio, onChange: function (v) { set({ bio: v }); } }),
+      h("h2", { key: "h", className: "heading" }, "Weekbudget"),
+      h("div", { key: "bu", className: "chips" }, [40, 60, 80, 100].map(function (b) { return h(C.Chip, { key: b, selected: s.budget === b, onClick: function () { set({ budget: b }); } }, "€" + b); }))
+    ];
+    return h("div", { className: "screen onboard" },
+      h("div", { className: "onboard-top" }, step > (p.startStep || 0) ? h(C.IconButton, { icon: "back", label: "Terug", onClick: function () { setStep(step - 1); } }) : h("span", { className: "small muted" }, s.account ? "Hoi " + s.account.name + "!" : ""),
+        h("div", { className: "ce-steps", style: { width: 72 } }, h("i", { "data-on": true }), h("i", { "data-on": true }), h("i", { "data-on": step === 2 }))),
+      h("div", { className: "stack" }, body),
+      h("div", { className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "arrow", onClick: function () { step === 2 ? p.done() : setStep(2); } }, step === 2 ? "Naar mijn week" : "Volgende")));
+  }
+
+  /* ---------------- notes per day ---------------- */
+  var NOTE_IDEAS = ["Eten we buiten de deur", "Restjes opmaken", "Gasten, kook voor 4", "Sam eet niet mee"];
+  function DayNote(p) {
+    var s = p.s, day = p.day, saved = (s.notes || {})[day] || "", ed = useState(false), editing = ed[0] || !saved, tx = useState(saved), text = tx[0];
+    useEffect(function () { tx[1]((s.notes || {})[day] || ""); ed[1](false); }, [day]);
+    function save(v) { var val = v.trim(); p.set({ notes: setKey(s.notes || {}, day, val || false), toast: val ? "Notitie bewaard" : (saved ? "Notitie verwijderd" : null) }); ed[1](false); }
+    if (!editing) return h("div", { className: "daynote" },
+      h("div", { className: "daynote-head" }, h(C.Icon, { name: "list", size: 18 }), h("span", { className: "label" }, "Notitie")),
+      h("p", { className: "daynote-text" }, saved),
+      h("div", { className: "daynote-actions" }, h(C.Button, { size: "sm", variant: "secondary", onClick: function () { tx[1](saved); ed[1](true); } }, "Wijzig"), h(C.Button, { size: "sm", variant: "ghost", onClick: function () { tx[1](""); save(""); } }, "Verwijder")));
+    var ideas = s.household && s.household.some(function (m) { return m.status === "active"; }) ? NOTE_IDEAS.map(function (x) { return x.replace("Sam", partners(s)[0].name); }) : NOTE_IDEAS.slice(0, 3);
+    return h("div", { className: "daynote daynote-edit" },
+      h(C.TextField, { id: "note-" + day, label: "Notitie voor " + DAYS[day].toLowerCase(), multiline: true, rows: 2, value: text, placeholder: "Bijv. vroeg sporten, dus iets snels", onChange: function (e) { tx[1](e.target.value.slice(0, 200)); } }),
+      !text ? h("div", { className: "chips" }, ideas.map(function (x) { return h("button", { key: x, type: "button", className: "ce-chip note-idea", onClick: function () { tx[1](x); } }, x); })) : null,
+      h("div", { className: "daynote-actions" },
+        h(C.Button, { size: "sm", variant: "primary", disabled: !text.trim() && !saved, onClick: function () { save(text); } }, "Bewaar notitie"),
+        saved ? h(C.Button, { size: "sm", variant: "ghost", onClick: function () { tx[1](saved); ed[1](false); } }, "Annuleer") : null,
+        h("span", { className: "small muted num daynote-count" }, text.length + "/200")));
+  }
+
+  /* ---------------- Week tab ---------------- */
+  function WeekTab(p) {
+    var s = p.s, set = p.set, day = s.day, id = s.plan[day], r = id && rec(id);
+    var n = useMemo(function () { return need(s.plan, s.persons); }, [s.plan, s.persons, s.custom]);
+    var total = useMemo(function () { return Object.keys(n).length ? rank(n, s.bio)[0].total : 0; }, [n, s.bio]);
+    var sugg = useMemo(function () { return suggestions(s, day).slice(0, 3); }, [s.plan, day, s.persons, s.bio, s.liked, s.disliked, s.diet, s.custom]);
+    var coach = null;
+    if (r && s.priority === "besparen") {
+      var ex = extraFor(s.plan, day, id, s.persons, s.bio), ni = newIngs(s.plan, day, id), alt = sugg[0];
+      if (alt && !s.kept[day + id] && ni.fresh.length >= 3 && ex - alt.extra >= 2) coach = { ex: ex, ni: ni, alt: alt };
+    }
+    function setDay(rid) { set({ plan: withDay(s.plan, day, rid) }); }
+    return h("div", { className: "screen" },
+      h("header", { className: "top" }, h("div", null, h(Eyebrow, null, "Week 42 · " + s.persons + " personen"), h("h1", { className: "display-l" }, "Jouw week"))),
+      !s.testDone ? h(TestCard, { onStart: p.startTest }) : null,
+      h(C.BudgetMeter, { spent: total, budget: s.budget, label: "Weekbudget" }),
+      h(C.WeekStrip, { selected: day, dates: DATES, onSelect: function (d) { set({ day: d }); }, planned: s.plan.map(Boolean), notes: DAYS.map(function (_, i) { return !!(s.notes || {})[i]; }) }),
+      h(Section, { title: DAYS[day] },
+        r ? h(C.RecipeCard, { recipe: r, badges: badgesFor(s, day, id), onClick: function () { p.open(id); }, action: h(C.IconButton, { icon: "x", label: "Haal van " + DAYS[day], onClick: function (e) { e.stopPropagation(); setDay(null); } }) })
+          : h("div", { className: "empty" }, h("p", null, "Nog niets gepland voor " + DAYS[day].toLowerCase() + ". Deze recepten passen bij wat je al koopt:")),
+        coach ? h(C.TipCard, { tone: "warn", primary: "Wissel", secondary: "Houden", onPrimary: function () { setDay(coach.alt.r.id); }, onSecondary: function () { set({ kept: setKey(s.kept, day + id, 1) }); } },
+          h("span", null, r.title + " vraagt " + coach.ni.fresh.length + " nieuwe ingrediënten: ", h("span", { className: "ce-tip-amt" }, "+ " + eur(coach.ex)), ". ", h("b", null, coach.alt.r.title), " gebruikt " + (coach.alt.ni.shared.length ? joinNl(namesOf(coach.alt.ni.shared).slice(0, 2)) + " die je al koopt" : "goedkopere ingrediënten") + ". Bespaar " + eur(coach.ex - coach.alt.extra) + ".")) : null),
+      h(DayNote, { s: s, set: set, day: day }),
+      !r || !coach ? h(Section, { title: r ? "Of probeer" : "Slimme suggesties", aside: h("span", { className: "small muted" }, "laagste extra kosten") },
+        h("div", { className: "list-gap" }, sugg.map(function (x) {
+          return h(C.RecipeCard, { key: x.r.id, recipe: x.r, onClick: function () { p.open(x.r.id); },
+            badges: [x.ni.shared.length ? { tone: "restje", text: "Gebruikt " + joinNl(namesOf(x.ni.shared).slice(0, 2)) } : null, { tone: x.extra < 4 ? "save" : "nieuw", text: "+ " + eur(x.extra) }].filter(Boolean),
+            action: h(C.IconButton, { icon: "plus", label: "Plan op " + DAYS[day], onClick: function (e) { e.stopPropagation(); setDay(x.r.id); } }) });
+        }))) : null,
+      s.testDone ? h(TestCard, { done: profileLine(profile(s)), onStart: p.startTest }) : null,
+      h("div", { className: "spacer" }));
+  }
+  function badgesFor(s, day, id) {
+    var ni = newIngs(s.plan, day, id), b = [], fb = fanBadge(s, id);
+    if (fb) b.push(fb);
+    if (ni.shared.length) b.push({ tone: "restje", text: "Deelt " + joinNl(namesOf(ni.shared).slice(0, 2)) });
+    if (ni.fresh.length >= 4) b.push({ tone: "nieuw", text: ni.fresh.length + " nieuwe ingrediënten" });
+    if (rec(id).source === "eigen") b.push({ tone: "grass", text: "Eigen recept" });
+    return b;
+  }
+
+  /* ---------------- Recepten tab ---------------- */
+  var FILTERS = [["alle", "Alles"], ["snel", "Snel"], ["vega", "Vega"], ["budget", "Budget"], ["gezond", "Gezond"], ["comfort", "Comfort"], ["eigen", "Eigen"]];
+  function matches(r, s, query, filter) {
+    if (query) { var ql = query.toLowerCase(); if (r.title.toLowerCase().indexOf(ql) < 0 && !Object.keys(r.items).some(function (k) { return D.ING[k] && D.ING[k].label.toLowerCase().indexOf(ql) > -1; })) return false; }
+    if (filter === "liked") return !!s.liked[r.id];
+    if (filter === "eigen") return r.source === "eigen";
+    if (filter === "partner") return partnerFans(s, r.id).length > 0;
+    if (filter !== "alle") return r.tags.indexOf(filter) > -1;
+    return true;
+  }
+  function RecipesTab(p) {
+    var s = p.s, set = p.set, q = useState(""), query = q[0], f = useState("alle"), mode = s.recMode || "swipe", m = [mode, function (v) { set({ recMode: v }); }];
+    // category filters only apply on "Alle"
+    var filter = mode === "lijst" ? f[0] : "alle";
+    var who = s.likedWho || "mine", ppl = partners(s);
+    if (who !== "mine" && who !== "both" && !ppl.some(function (x) { return x.email === who; })) who = "mine";
+    function likedBy(r) {
+      if (who === "mine") return !!s.liked[r.id];
+      if (who === "both") return !!s.liked[r.id] && partnerFans(s, r.id).length > 0;
+      var pm = ppl.filter(function (x) { return x.email === who; })[0]; return !!(pm && pm.liked[r.id]);
+    }
+    var list = allRecipes(s).filter(function (r) { return matches(r, s, query, filter) && (mode !== "liked" || likedBy(r)); });
+    var showList = mode !== "swipe" || !!query;
+    var whoName = who === "mine" ? "Jouw" : who === "both" ? "Jullie gezamenlijke" : "De gelikete recepten van " + (ppl.filter(function (x) { return x.email === who; })[0] || {}).name;
+    // swipe stack: recipes you have not judged yet and that are not planned, within the active filter
+    var stack = allRecipes(s).filter(function (r) { return matches(r, s, "", filter) && !s.liked[r.id] && !s.disliked[r.id] && s.plan.indexOf(r.id) < 0 && (s.diet !== "vega" || r.vega); });
+    stack.sort(function (a, b) { return fanScore(s, b.id) - fanScore(s, a.id); });
+    if (mode !== "swipe") list.sort(function (a, b) { return fanScore(s, b.id) - fanScore(s, a.id); });
+    var top = stack[0];
+    function swipe(dir) { if (!top) return; set(dir === "like" ? { liked: setKey(s.liked, top.id, 1), toast: "Bewaard bij je gelikete recepten" } : { disliked: setKey(s.disliked, top.id, 1) }); }
+    var reason = null, fans0 = [];
+    if (top) { fans0 = partnerFans(s, top.id); var sh = newIngs(s.plan, -1, top.id).shared; if (fans0.length) reason = joinNl(fans0) + " vindt dit lekker"; else if (sh.length) reason = "Past bij je week: " + joinNl(namesOf(sh).slice(0, 2)); }
+    var liked = allRecipes(s).filter(function (r) { return s.liked[r.id]; });
+    function card(r) {
+      var planned = s.plan.indexOf(r.id);
+      return h(C.RecipeCard, { key: r.id, recipe: r, onClick: function () { p.open(r.id); },
+        badges: [fanBadge(s, r.id), planned > -1 ? { tone: "neutral", text: "Gepland " + DAYS_S[planned] } : null, r.source === "eigen" ? { tone: "neutral", text: "Eigen recept" } : r.source === "community" ? { tone: "neutral", text: "Door " + authorOf(r, s).name } : null].filter(Boolean),
+        action: h("div", { className: "card-actions" }, h(LikeButton, { s: s, set: set, r: r }), h(C.IconButton, { icon: "week", label: "Kies een dag voor " + r.title, onClick: function (e) { e.stopPropagation(); p.pick(r.id); } })) });
+    }
+    return h("div", { className: "screen" },
+      h("header", { className: "top" }, h("div", null, h(Eyebrow, null, allRecipes(s).length + " recepten"), h("h1", { className: "display-l" }, "Recepten")),
+        h(C.IconButton, { icon: "plus", label: "Eigen recept toevoegen", tone: "filled", onClick: p.add })),
+      h(C.SearchField, { id: "zoek", value: query, onChange: function (e) { q[1](e.target.value); }, placeholder: "Zoek recept of ingrediënt" }),
+      h("div", { className: "seg", role: "tablist", "aria-label": "Weergave" },
+        [["swipe", "Swipen"], ["lijst", "Alle"], ["liked", "Gelikete (" + liked.length + ")"]].map(function (o) { return h("button", { key: o[0], type: "button", role: "tab", className: "seg-btn", "aria-selected": mode === o[0] && !query, onClick: function () { m[1](o[0]); q[1](""); } }, o[1]); })),
+      mode === "lijst" && !query ? h("div", { className: "chips chips-scroll" }, (ppl.length ? [["partner", "Favoriet van " + joinNl(ppl.map(function (x) { return x.name; }))]] : []).concat(FILTERS).map(function (o) { return h(C.Chip, { key: o[0], selected: filter === o[0], onClick: function () { f[1](o[0]); } }, o[1]); })) : null,
+      mode === "liked" && !query && ppl.length ? h("div", { className: "who", role: "tablist", "aria-label": "Gelikete recepten van" },
+        [["mine", "Jij", s.account ? s.account.name : "Jij", Object.keys(s.liked).filter(function (k) { return rec(k); }).length]].concat(ppl.map(function (x) { return [x.email, x.name, x.name, Object.keys(x.liked).filter(function (k) { return rec(k); }).length]; })).concat([["both", "Samen", null, allRecipes(s).filter(function (r) { return s.liked[r.id] && partnerFans(s, r.id).length; }).length]]).map(function (o) {
+          return h("button", { key: o[0], type: "button", role: "tab", className: "who-btn", "aria-selected": who === o[0], onClick: function () { set({ likedWho: o[0] }); } },
+            o[0] === "both" ? h(C.AvatarStack, { names: [s.account ? s.account.name : "Jij"].concat(ppl.map(function (x) { return x.name; })) }) : h(C.Avatar, { name: o[2], size: "sm", tone: o[0] === "mine" ? "grass" : undefined }),
+            h("span", null, o[1]), h("b", { className: "num" }, o[3]));
+        })) : null,
+      showList ? h(Section, { title: query ? list.length + " gevonden voor \u201c" + query + "\u201d" : (mode === "liked" ? (ppl.length ? whoName + (who === "mine" ? " gelikete recepten" : who === "both" ? " favorieten" : "") : "Je gelikete recepten") + " (" + list.length + ")" : list.length + (list.length === 1 ? " recept" : " recepten")) },
+        list.length ? h("div", { className: "list-gap" }, list.map(card)) : h("div", { className: "empty" }, h("p", null, mode === "liked" && !query ? (who === "both" ? "Nog geen recepten die jullie allebei lekker vinden. Like een recept dat je partner ook lekker vindt." : who === "mine" ? "Nog geen gelikete recepten. Tik op het hartje bij een recept of swipe naar rechts." : "Nog geen gelikete recepten.") : filter === "eigen" ? "Je hebt nog geen eigen recepten. Tik op + om er een toe te voegen." : "Geen recepten gevonden. Probeer een ander woord of filter."), filter === "eigen" ? h(C.Button, { variant: "secondary", onClick: p.add }, "Eigen recept toevoegen") : null))
+      : h(React.Fragment, null,
+        top ? h("div", { className: "swipe-wrap" },
+          stack[1] ? h("div", { className: "swipe-under", "aria-hidden": true }) : null,
+          h(C.SwipeCard, { key: top.id, recipe: top, reason: reason, reasonTone: fans0.length ? "grass" : undefined, reasonIcon: fans0.length ? "heart" : undefined, onSwipe: swipe }),
+          h("div", { className: "swipe-meta" }, h("span", { className: "small muted num" }, stack.length + " recepten om te swipen"), h("button", { type: "button", className: "linkbtn", onClick: function () { p.open(top.id); } }, "Bekijk recept")),
+          h("div", { className: "ce-swipe-actions" },
+            h(C.IconButton, { icon: "x", label: "Niet voor mij", tone: "tomato", size: "lg", onClick: function () { swipe("nope"); } }),
+            h(C.IconButton, { icon: "week", label: "Kies een dag", onClick: function () { p.pick(top.id); } }),
+            h(C.IconButton, { icon: "heart", label: "Lekker", tone: "grass", size: "lg", onClick: function () { swipe("like"); } })))
+          : h("div", { className: "empty" }, h("p", null, "Je hebt alles in deze selectie geswipet."), h(C.Button, { variant: "secondary", onClick: function () { set({ disliked: {} }); } }, "Niet-lekker opnieuw tonen")),
+        liked.length ? h(Section, { title: "Gelikete recepten (" + liked.length + ")", aside: h("button", { type: "button", className: "linkbtn", onClick: function () { m[1]("liked"); } }, "Alles zien") }, h("div", { className: "list-gap" }, liked.slice(0, 3).map(card))) : null,
+        h(TestCard, { done: s.testDone ? profileLine(profile(s)) : null, onStart: p.startTest })),
+      h("div", { className: "spacer" }));
+  }
+
+  /* ---------------- Recipe detail ---------------- */
+  function RecipeDetail(p) {
+    var s = p.s, set = p.set, r = rec(p.id), ps = useState(s.persons), persons = ps[0];
+    var day = s.plan.indexOf(r.id);
+    var have = {}; s.plan.forEach(function (x) { var rr = x && rec(x); if (rr && x !== r.id) Object.keys(rr.items).forEach(function (k) { have[k] = 1; }); });
+    function scaled(q, unit) { var v = q * persons / r.persons; if (unit === "st." || unit === "bos") return Math.ceil(v - 0.01); return v > 50 ? Math.round(v / 5) * 5 : Math.round(v); }
+    var unpriced = r.unpriced ? Object.keys(r.unpriced) : [];
+    return h("div", { className: "detail" },
+      h("div", { className: "detail-art" }, r.photo ? h("img", { className: "ce-photo", src: r.photo, alt: r.title }) : h(C.Dish, { ingredients: r.ingredients, seed: r.title, ground: "var(--grass)", label: r.title }),
+        r.credit ? h("span", { className: "ce-credit detail-credit" }, r.credit) : null,
+        h("div", { className: "detail-nav" }, h(C.IconButton, { icon: "back", label: "Terug", onClick: p.close }),
+          h(C.IconButton, { icon: "heart", label: s.liked[r.id] ? "Niet meer lekker" : "Lekker", tone: s.liked[r.id] ? "grass" : undefined, onClick: function () { set({ liked: setKey(s.liked, r.id, !s.liked[r.id]), disliked: setKey(s.disliked, r.id, false) }); } }))),
+      h("div", { className: "screen detail-body" },
+        h("div", null, h(Eyebrow, null, r.source === "eigen" ? "Eigen recept" : r.source === "community" ? "Recept uit de community" : "Recept van Picnic"), h("h1", { className: "display-l" }, r.title)),
+        (function () { var au = authorOf(r, s); return h("button", { type: "button", className: "author-row", onClick: function () { p.openAuthor(au.id); } },
+          h(C.Avatar, { name: au.name, tone: au.me ? "grass" : au.org ? "forest" : undefined }),
+          h("span", { className: "author-body" }, h("small", null, "Recept van"), h("b", null, au.me ? au.name + " (jij)" : au.name)),
+          h("span", { className: "author-link" }, au.me ? "Mijn profiel" : "Bekijk profiel", h(C.Icon, { name: "chevron", size: 18 }))); })(),
+        h("div", { className: "chips" }, h(C.Badge, { icon: "clock" }, r.minutes + " min"), h(C.Badge, null, eur(r.pricePP) + " p.p."), r.vega ? h(C.Badge, { tone: "grass" }, "Vega") : null, fanBadge(s, r.id) ? h(C.Badge, { tone: "grass", icon: "heart" }, fanBadge(s, r.id).text) : null, day > -1 ? h(C.Badge, { tone: "restje", icon: "week" }, "Gepland op " + DAYS[day].toLowerCase()) : null),
+        h("div", { className: "ce-setting" }, h("div", null, "Personen", h("small", null, "Recept is voor " + r.persons + ", hoeveelheden rekenen mee")), h(C.Stepper, { value: persons, onChange: ps[1], label: "Personen" })),
+        h(Section, { title: "Ingrediënten" },
+          h("div", { className: "ce-group" }, Object.keys(r.items).filter(function (k) { return D.ING[k]; }).map(function (k) {
+            var ing = D.ING[k];
+            return h("div", { className: "ingrow", key: k },
+              h("span", { className: "ingrow-name" }, shortLabel(k)),
+              have[k] ? h(C.Badge, { tone: "restje" }, "al op lijstje") : null,
+              h("span", { className: "ingrow-qty num" }, fmtQty(scaled(r.items[k], ing.unit), ing.unit)));
+          }).concat(unpriced.map(function (k) { var u = r.unpriced[k];
+            return h("div", { className: "ingrow", key: k }, h("span", { className: "ingrow-name" }, u.name), h(C.Badge, null, "geen prijs"), h("span", { className: "ingrow-qty num" }, u.qty ? fmtQty(Math.round(u.qty * persons / r.persons * 10) / 10, u.unit) : "")); }))),
+          r.pantry && r.pantry.length ? h("p", { className: "small muted" }, "Waarschijnlijk al in huis: " + r.pantry.join(", ") + ".") : null),
+        r.notes ? h(Section, { title: "Bereiding" }, h("p", { className: "notes" }, r.notes)) : null,
+        r.url ? h("a", { className: "source-link", href: r.url, target: "_blank", rel: "noopener" }, "Bekijk de bereiding op picnic.app") : null,
+        r.source === "eigen" ? h(C.Button, { variant: "secondary", block: true, onClick: function () { p.edit(r.id); } }, "Recept bewerken") : null,
+        r.createdAt ? h("p", { className: "post-meta" }, "Geplaatst op " + fmtDate(r.createdAt), r.updatedAt ? h("span", null, " · Bewerkt op " + fmtDate(r.updatedAt)) : null) : null,
+        h("div", { className: "spacer-s" })),
+      h("div", { className: "detail-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "week", onClick: function () { p.pick(r.id); } }, day > -1 ? "Andere dag kiezen" : "Kies een dag")));
+  }
+
+  /* ---------------- Author profile ---------------- */
+  function AuthorProfile(p) {
+    var s = p.s, set = p.set, u = D.USERS[p.id] || D.USERS.picnic;
+    var mine = allRecipes(s).filter(function (r) { return r.source !== "eigen" && (r.author || "picnic") === u.id; });
+    var likedByMe = mine.filter(function (r) { return s.liked[r.id]; }).length;
+    return h("div", { className: "screen" },
+      h("div", { className: "wiz-top" }, h(C.IconButton, { icon: "back", label: "Terug", onClick: p.close }), h("span", { className: "heading" }, "Profiel"), h("span", { style: { width: 44 } })),
+      h("div", { className: "author-hero" }, h(C.Avatar, { name: u.name, size: "lg", tone: u.org ? "forest" : undefined }),
+        h("div", null, h("h1", { className: "display-l" }, u.name), u.joined ? h("span", { className: "small muted" }, "Lid sinds " + fmtDate(u.joined)) : h("span", { className: "small muted" }, "Receptpartner"))),
+      h("p", null, u.bio),
+      h("div", { className: "profile-stats" },
+        h("div", { className: "stat" }, h("b", { className: "num" }, mine.length), h("span", null, "recepten")),
+        h("div", { className: "stat" }, h("b", { className: "num" }, likedByMe), h("span", null, "door jou geliket"))),
+      u.org ? null : h("p", { className: "small muted" }, "Voorbeeldprofiel in dit prototype."),
+      h(Section, { title: u.org ? "Recepten van " + u.name : cookbook(u.name) },
+        h("div", { className: "list-gap" }, mine.map(function (r) {
+          return h(C.RecipeCard, { key: r.id, recipe: r, onClick: function () { p.open(r.id); },
+            badges: [fanBadge(s, r.id), r.createdAt ? { tone: "neutral", text: (r.updatedAt ? "Bewerkt " + fmtDate(r.updatedAt) : "Geplaatst " + fmtDate(r.createdAt)) } : null].filter(Boolean),
+            action: h("div", { className: "card-actions" }, h(LikeButton, { s: s, set: set, r: r }), h(C.IconButton, { icon: "week", label: "Kies een dag voor " + r.title, onClick: function (e) { e.stopPropagation(); p.pick(r.id); } })) });
+        }))),
+      h("div", { className: "spacer-s" }));
+  }
+
+  /* ---------------- Day picker sheet ---------------- */
+  function DaySheet(p) {
+    var s = p.s, r = rec(p.id), cur = s.plan.indexOf(r.id);
+    var base = s.plan.map(function (x) { return x === r.id ? null : x; });
+    var days = DAYS.map(function (d, i) {
+      var other = base[i] ? rec(base[i]) : null;
+      var ex = extraFor(base, i, r.id, s.persons, s.bio), shared = newIngs(base, i, r.id).shared;
+      return { label: d, short: DAYS_S[i], date: DATES[i], planned: other ? other.title : null, ex: ex, shared: shared.length };
+    });
+    var free = days.filter(function (d) { return !d.planned; }), min = Math.min.apply(null, (free.length ? free : days).map(function (d) { return d.ex; }));
+    days.forEach(function (d) { d.good = Math.abs(d.ex - min) < 0.01 && (!free.length || !d.planned); d.hint = "+ " + eur(d.ex) + (d.good ? " · voordeligst" : ""); });
+    return h(Sheet, { label: "Kies een dag", eyebrow: r.title, title: "Wanneer wil je dit eten?", onClose: p.close, tall: true },
+      h("p", { className: "small muted" }, "Het bedrag is wat dit recept je boodschappen duurder maakt. Op de voordeligste vrije dag deelt het de meeste ingrediënten met de rest van je week. Kies je een dag waar al iets staat, dan vervang je dat recept."),
+      h(C.DayPicker, { days: days, selected: cur, onSelect: function (i) { p.choose(i); } }),
+      cur > -1 ? h(C.Button, { variant: "ghost", block: true, onClick: function () { p.choose(-1); } }, "Haal uit mijn week") : null);
+  }
+
+  /* ---------------- Eigen recept toevoegen ---------------- */
+  var CATALOG = Object.keys(D.ING).map(function (k) { return { k: k, label: D.ING[k].label, unit: D.ING[k].unit }; });
+  function matchIng(name, customIngs) {
+    var n = name.trim().toLowerCase(); if (n.length < 2) return [];
+    var extra = Object.keys(customIngs || {}).map(function (k) { var c = customIngs[k]; return { k: "custom:" + k, label: c.label, unit: c.unit, custom: true }; });
+    var words = n.split(/[^a-z0-9à-ÿ]+/).filter(function (w) { return w.length >= 3; });
+    return CATALOG.concat(extra).map(function (c) {
+      var l = c.label.toLowerCase(), lw = l.split(/[^a-z0-9à-ÿ]+/).filter(function (w) { return w.length >= 3; }), sc = 0;
+      if (l === n || c.k === n) sc = 100; else if (l.indexOf(n) === 0 || c.k.indexOf(n) === 0) sc = 70;
+      words.forEach(function (w) { lw.concat([c.k]).forEach(function (x) {
+        if (x === w) sc = Math.max(sc, 60); else if ((x.length >= 4 || x === c.k) && (w.indexOf(x) === 0 || x.indexOf(w) === 0)) sc = Math.max(sc, 30 + Math.min(x.length, w.length));
+      }); });
+      return { c: c, sc: sc };
+    }).filter(function (x) { return x.sc > 0; }).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 4).map(function (x) { return x.c; });
+  }
+  function isHerb(k) { return k && D.ING[k].dept === "Kruiden"; }
+  function unitsFor(catUnit, k) { if (catUnit === "g") return isHerb(k) ? ["bos", "g"] : ["g", "kg", "el", "tl"]; if (catUnit === "ml") return ["ml", "l", "el"]; if (catUnit === "st.") return ["st."]; if (catUnit === "bos") return ["bos"]; return ["g", "kg", "ml", "l", "st.", "el", "tl", "bos"]; }
+  function blankRow() { return { name: "", qty: "", unit: "g", key: null, pantry: false }; }
+  function rowsFrom(r) {
+    var rows = Object.keys(r.items).filter(function (k) { return D.ING[k]; }).map(function (k) { return { name: D.ING[k].label, qty: String(Math.round(r.items[k] * 10) / 10).replace(".", ","), unit: D.ING[k].unit, key: k, pantry: false }; });
+    Object.keys(r.unpriced || {}).forEach(function (k) { var u = r.unpriced[k]; rows.push({ name: u.name, qty: String(u.qty).replace(".", ","), unit: u.unit, key: null, custom: true, pantry: false }); });
+    (r.pantry || []).forEach(function (x) { rows.push({ name: x, qty: "", unit: "g", key: null, pantry: true }); });
+    return rows.length ? rows : [blankRow()];
+  }
+  function resizePhoto(file, done, fail) {
+    if (!file || !/^image\//.test(file.type)) return fail("Kies een afbeelding (jpg, png of heic).");
+    var rd = new FileReader();
+    rd.onerror = function () { fail("Deze foto kon niet worden gelezen. Probeer een andere."); };
+    rd.onload = function () {
+      var img = new Image();
+      img.onerror = function () { fail("Deze foto kon niet worden gelezen. Probeer een andere."); };
+      img.onload = function () {
+        var max = 900, sc = Math.min(1, max / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        done(cv.toDataURL("image/jpeg", 0.78));
+      };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(file);
+  }
+  function AddRecipe(p) {
+    var init = p.initial;
+    var st = useState(init ? { title: init.title, minutes: init.minutes, persons: init.persons, vega: init.tags.indexOf("vega") > -1, rows: rowsFrom(init), notes: init.notes || "", photo: init.photo || null }
+      : { title: "", minutes: 30, persons: 2, vega: false, rows: [blankRow(), blankRow()], notes: "", photo: null }), f = st[0];
+    var pe = useState(null), photoErr = pe[0];
+    var es = useState({}), errors = es[0], fo = useState(-1), focus = fo[0];
+    function upd(o) { es[1]({}); st[1](function (prev) { return Object.assign({}, prev, o); }); }
+    function updRow(i, o) { es[1]({}); st[1](function (prev) { var rows = prev.rows.slice(); rows[i] = Object.assign({}, rows[i], o); return Object.assign({}, prev, { rows: rows }); }); }
+    function link(i, c) {
+      if (c.custom) { updRow(i, { key: null, custom: true, name: c.label, unit: c.unit || f.rows[i].unit }); fo[1](-1); return; }
+      var u = unitsFor(c.unit, c.k); updRow(i, { key: c.k, custom: false, name: c.label, unit: u.indexOf(f.rows[i].unit) > -1 ? f.rows[i].unit : u[0] }); fo[1](-1);
+    }
+    function num(v) { return parseFloat(String(v).replace(",", ".")); }
+    function save() {
+      var e = {};
+      if (!f.title.trim()) e.title = "Geef je recept een naam.";
+      var filled = f.rows.filter(function (r) { return r.name.trim(); });
+      if (!filled.length) e.rows = "Voeg minstens één ingrediënt toe.";
+      f.rows.forEach(function (r, i) { if (r.name.trim() && !r.pantry && !(num(r.qty) > 0)) e["q" + i] = "Vul een hoeveelheid in."; });
+      es[1](e); if (Object.keys(e).length) return;
+      var items = {}, unpriced = {}, pantry = [], newIng = [];
+      f.rows.forEach(function (r, i) {
+        if (!r.name.trim()) return;
+        if (r.pantry) { pantry.push(r.name.trim().toLowerCase()); return; }
+        var q = num(r.qty);
+        if (r.key) { var f2 = r.unit === "bos" && isHerb(r.key) ? 15 : (D.UNITS[r.unit] || { f: 1 }).f; items[r.key] = (items[r.key] || 0) + q * f2; }
+        else { unpriced["x" + i] = { name: r.name.trim(), qty: q, unit: r.unit }; newIng.push({ label: r.name.trim(), unit: r.unit }); }
+      });
+      var now = new Date().toISOString();
+      p.save({ id: init ? init.id : "eigen-" + Date.now().toString(36), title: f.title.trim(), minutes: f.minutes, persons: f.persons, tags: (f.vega ? ["vega"] : []).concat(f.minutes <= 20 ? ["snel"] : []), items: items, unpriced: unpriced, pantry: pantry, notes: f.notes.trim(), photo: f.photo, source: "eigen", url: null,
+        createdAt: init ? (init.createdAt || now) : now, updatedAt: init ? now : null }, newIng);
+    }
+    var named = f.rows.filter(function (r) { return r.name.trim() && !r.pantry; }).length, priced = f.rows.filter(function (r) { return r.key && r.name.trim() && !r.pantry; }).length;
+    return h("div", { className: "screen addform" },
+      h("div", { className: "wiz-top" }, h(C.IconButton, { icon: "x", label: "Annuleren", onClick: p.close }), h("span", { className: "heading" }, init ? "Bewerken" : "Eigen recept"), h("span", { style: { width: 44 } })),
+      h("h1", { className: "display-l" }, init ? "Recept bewerken" : "Voeg je eigen recept toe"),
+      h("div", { className: "ce-field" }, h("span", { className: "ce-field-label" }, "Foto (optioneel)"),
+        f.photo ? h("div", { className: "photo-pick has-photo" }, h("img", { src: f.photo, alt: "Foto van je recept" }),
+          h("div", { className: "photo-actions" },
+            h("label", { className: "ce-btn ce-btn-secondary ce-btn-sm", htmlFor: "r-photo" }, "Andere foto"),
+            h(C.Button, { size: "sm", variant: "ghost", onClick: function () { upd({ photo: null }); } }, "Verwijder")))
+          : h("label", { className: "photo-pick", htmlFor: "r-photo" }, h(C.Icon, { name: "plus", size: 28 }), h("b", null, "Foto toevoegen"), h("small", null, "Maak een foto of kies er een uit je galerij")),
+        h("input", { id: "r-photo", type: "file", accept: "image/*", className: "sr-only", onChange: function (e) { var file = e.target.files && e.target.files[0]; e.target.value = ""; pe[1](null); resizePhoto(file, function (url) { upd({ photo: url }); }, function (m) { pe[1](m); }); } }),
+        photoErr ? h("small", { className: "ce-field-msg" }, photoErr) : null),
+      h(C.TextField, { id: "r-title", label: "Naam van het recept", value: f.title, placeholder: "Bijv. Oma's erwtensoep", error: errors.title, onChange: function (e) { upd({ title: e.target.value }); } }),
+      h("div", { className: "ce-field" }, h("span", { className: "ce-field-label" }, "Voor hoeveel personen is dit recept?"), h("div", null, h(C.Stepper, { value: f.persons, onChange: function (v) { upd({ persons: v }); }, unit: "pers.", label: "Personen in dit recept" })),
+        h("small", { className: "ce-field-hint" }, "Vul de hoeveelheden hieronder in voor dit aantal. De app rekent het om naar jouw huishouden.")),
+      h("div", { className: "ce-field" }, h("span", { className: "ce-field-label" }, "Bereidingstijd"),
+        h("div", { className: "chips" }, [15, 20, 30, 45, 60].map(function (m) { return h(C.Chip, { key: m, selected: f.minutes === m, onClick: function () { upd({ minutes: m }); } }, m === 60 ? "60+ min" : m + " min"); }))),
+      h(C.Toggle, { label: "Vegetarisch", checked: f.vega, onChange: function (v) { upd({ vega: v }); } }),
+      h(Section, { title: "Ingrediënten", aside: h("span", { className: "small muted" }, "voor " + f.persons + " pers.") },
+        h("p", { className: "small muted" }, "Typ een ingrediënt en kies het juiste product, dan rekenen we de prijs mee. Zout, olie en kruiden die je altijd hebt? Vink 'Heb ik altijd in huis' aan."),
+        errors.rows ? h("p", { className: "ce-field-msg" }, errors.rows) : null,
+        f.rows.map(function (r, i) {
+          var linked = r.key || r.custom, sugg = !linked && !r.pantry ? matchIng(r.name, p.customIngs).slice(0, focus === i ? 4 : 2) : [], units = r.key ? unitsFor(D.ING[r.key].unit, r.key) : unitsFor(null);
+          var exact = sugg.some(function (c) { return c.label.toLowerCase() === r.name.trim().toLowerCase(); }), canNew = !linked && !r.pantry && r.name.trim().length >= 2 && !exact;
+          return h("div", { className: "ingform", key: i },
+            h("div", { className: "ingform-top" },
+              h(C.TextField, { id: "ing-" + i, label: "Ingrediënt " + (i + 1), value: r.name, placeholder: i === 0 ? "Bijv. cherrytomaten" : "Ingrediënt", className: "ingform-name",
+                onFocus: function () { fo[1](i); }, onChange: function (e) { updRow(i, { name: e.target.value, key: null, custom: false }); fo[1](i); } }),
+              f.rows.length > 1 ? h(C.IconButton, { icon: "x", label: "Verwijder ingrediënt " + (i + 1), onClick: function () { st[1](function (prev) { var rows = prev.rows.slice(); rows.splice(i, 1); return Object.assign({}, prev, { rows: rows }); }); } }) : null),
+            sugg.length || canNew ? h("div", { className: "ingform-sugg" }, sugg.length ? h("span", { className: "small muted" }, focus === i ? "Kies product:" : "Bedoel je:") : null, sugg.map(function (c) {
+              return h("button", { key: c.k, type: "button", className: "ce-chip" + (c.custom ? " chip-custom" : ""), onClick: function () { link(i, c); } }, c.label); }),
+              canNew ? h("button", { type: "button", className: "ce-chip chip-new", onClick: function () { updRow(i, { custom: true, key: null, name: r.name.trim() }); fo[1](-1); } }, "+ \u201c" + r.name.trim() + "\u201d als nieuw ingrediënt") : null) : null,
+            !r.pantry ? h("div", { className: "ingform-qty" },
+              h(C.TextField, { id: "qty-" + i, label: "Hoeveelheid", value: r.qty, inputMode: "decimal", placeholder: r.unit === "st." ? "2" : "250", error: errors["q" + i], onChange: function (e) { updRow(i, { qty: e.target.value }); } }),
+              h("div", { className: "ce-field" }, h("label", { className: "ce-field-label", htmlFor: "unit-" + i }, "Eenheid"),
+                h("select", { id: "unit-" + i, className: "ce-select", value: r.unit, onChange: function (e) { updRow(i, { unit: e.target.value }); } }, units.map(function (u) { return h("option", { key: u, value: u }, u); })))) : null,
+            h("div", { className: "ingform-foot" },
+              r.name.trim() ? (r.pantry ? h(C.Badge, null, "Al in huis, niet op lijstje") : r.key ? h(C.Badge, { tone: "restje", icon: "check" }, "Gekoppeld, prijs bekend") : r.custom ? h(C.Badge, { tone: "grass", icon: "plus" }, "Nieuw ingrediënt, nog geen prijs") : h(C.Badge, { tone: "nieuw", icon: null }, "Kies een product of voeg het toe")) : h("span"),
+              h("label", { className: "pantry-check" }, h("input", { type: "checkbox", checked: r.pantry, onChange: function (e) { updRow(i, { pantry: e.target.checked }); } }), "Heb ik altijd in huis")));
+        }),
+        h(C.Button, { variant: "secondary", block: true, onClick: function () { upd({ rows: f.rows.concat([blankRow()]) }); } }, "+ Ingrediënt toevoegen")),
+      h(C.TextField, { id: "r-notes", label: "Bereiding (optioneel)", multiline: true, rows: 4, value: f.notes, placeholder: "Korte stappen of notities", onChange: function (e) { upd({ notes: e.target.value }); } }),
+      h("p", { className: "small muted" }, named ? priced + " van " + named + " ingrediënten hebben een prijs. De rest komt zonder prijs op je lijstje." : "Voeg ingrediënten toe om de prijs te zien."),
+      h("div", { className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: "check", onClick: save }, init ? "Wijzigingen opslaan" : "Recept plaatsen")));
+  }
+
+  /* ---------------- Lijstje tab ---------------- */
+  function ListTab(p) {
+    var s = p.s, set = p.set;
+    var n = useMemo(function () { return need(s.plan, s.persons); }, [s.plan, s.persons, s.custom]);
+    var keys = Object.keys(n), extra = [], pantry = {};
+    s.plan.forEach(function (id, d) { var r = id && rec(id); if (!r) return; (r.pantry || []).forEach(function (x) { pantry[x] = 1; }); if (r.unpriced) Object.keys(r.unpriced).forEach(function (k) { var u = r.unpriced[k]; extra.push({ id: id + k, name: u.name, qty: u.qty ? fmtQty(Math.round(u.qty * s.persons / r.persons * 10) / 10, u.unit) : "", day: d }); }); });
+    if (!keys.length && !extra.length) return h("div", { className: "screen" }, h("header", { className: "top" }, h("h1", { className: "display-l" }, "Lijstje")), h("div", { className: "empty" }, h("p", null, "Je lijstje is leeg. Plan een recept in je week, dan verschijnen de ingrediënten hier.")));
+    var best = keys.length ? rank(n, s.bio)[0] : null, depts = {};
+    keys.forEach(function (k) { var d = D.ING[k].dept; (depts[d] = depts[d] || []).push(k); });
+    var tips = keys.map(function (k) { var b = best.lines[k]; return { k: k, b: b, save: b.naive - b.cost }; }).filter(function (t) { return t.save > 0.05 && n[t.k].days.length > 1; }).slice(0, 2);
+    var done = keys.filter(function (k) { return s.checked[k]; }).length;
+    function toggle(k) { set({ checked: setKey(s.checked, k, !s.checked[k]) }); }
+    return h("div", { className: "screen" },
+      h("header", { className: "top" }, h("div", null, h(Eyebrow, null, done + " van " + keys.length + " in je mandje"), h("h1", { className: "display-l" }, "Lijstje")),
+        h(C.IconButton, { icon: "store", label: "Vergelijk winkels", onClick: p.compare })),
+      best ? h("p", { className: "small muted" }, "Hoeveelheden voor " + s.persons + " personen, verpakkingen zoals bij " + best.store.name + ".") : null,
+      tips.map(function (t) {
+        return h(C.TipCard, { key: t.k }, h("span", null, D.ING[t.k].label + " zit in " + n[t.k].days.length + " recepten: neem ", h("b", null, packsText(t.b)), ". Dat is " + eur(t.save) + " goedkoper dan losse kleine pakken."));
+      }),
+      Object.keys(depts).sort().map(function (d) {
+        return h(Section, { key: d, title: d }, h("div", { className: "ce-group" }, depts[d].map(function (k) {
+          var b = best.lines[k];
+          return h(C.ListItem, { key: k, name: shortLabel(k), qty: packsText(b), bio: s.bio && b.bio && !b.elsewhere, done: !!s.checked[k],
+            note: n[k].days.map(function (d2) { return DAYS_S[d2]; }).join(", ") + " · nodig " + fmtQty(n[k].qty, D.ING[k].unit) + (b.left ? " · " + fmtQty(b.left, D.ING[k].unit) + " over" : ""),
+            onToggle: function () { toggle(k); } });
+        })));
+      }),
+      extra.length ? h(Section, { title: "Zonder prijs (eigen recepten)" }, h("div", { className: "ce-group" }, extra.map(function (x) {
+        return h(C.ListItem, { key: x.id, name: x.name, qty: x.qty, note: DAYS_S[x.day] + " · niet meegerekend in de vergelijking", done: !!s.checked[x.id], onToggle: function () { toggle(x.id); } }); }))) : null,
+      (function () { Object.keys(pantry).forEach(function (x) { if (Object.keys(pantry).some(function (y) { return y !== x && y.indexOf(x) > -1; })) delete pantry[x]; }); })(),
+      Object.keys(pantry).length ? h(Section, { title: "Waarschijnlijk al in huis" }, h("p", { className: "small muted" }, "Niet meegerekend in de prijs. Vink aan wat je toch moet kopen."),
+        h("div", { className: "ce-group" }, Object.keys(pantry).map(function (x) { return h(C.ListItem, { key: x, name: x.charAt(0).toUpperCase() + x.slice(1), done: !!s.checked["p:" + x], onToggle: function () { toggle("p:" + x); } }); }))) : null,
+      h("div", { className: "spacer" }));
+  }
+
+  /* ---------------- Profiel tab ---------------- */
+  function ProfileTab(p) {
+    var s = p.s, set = p.set, prof = profile(s), cf = useState(null), confirmId = cf[0];
+    var mine = s.custom.map(function (c) { return rec(c.id); }).filter(Boolean).reverse();
+    var likedList = allRecipes(s).filter(function (r) { return s.liked[r.id]; });
+    return h("div", { className: "screen" },
+      h("header", { className: "profile-head" }, h(C.Avatar, { name: s.account ? s.account.name : "?", size: "lg", tone: "grass" }),
+        h("div", null, h("h1", { className: "display-l" }, s.account ? s.account.name : "Profiel"), s.account ? h("span", { className: "small muted" }, s.account.email) : null)),
+      h("div", { className: "profile-stats" },
+        h("button", { type: "button", className: "stat", onClick: function () { document.getElementById("mijn-recepten") && document.getElementById("mijn-recepten").scrollIntoView({ behavior: "smooth" }); } }, h("b", { className: "num" }, mine.length), h("span", null, "in je kookboek")),
+        h("button", { type: "button", className: "stat", onClick: p.gotoLiked }, h("b", { className: "num" }, likedList.length), h("span", null, "gelikete recepten"))),
+      h("section", { className: "sec", id: "mijn-recepten" },
+        h("div", { className: "sec-head" }, h("h2", { className: "heading" }, cookbook(s.account ? s.account.name : "Mijn")), mine.length ? h("button", { type: "button", className: "linkbtn", onClick: p.add }, "+ Nieuw recept") : null),
+        mine.length ? h("div", { className: "list-gap" }, mine.map(function (r) {
+          var planned = s.plan.indexOf(r.id);
+          return h("div", { key: r.id, className: "mine-item" },
+            h(C.RecipeCard, { recipe: r, onClick: function () { p.open(r.id); },
+              badges: [{ tone: "neutral", text: r.updatedAt ? "Bewerkt " + fmtDate(r.updatedAt) : "Geplaatst " + fmtDate(r.createdAt) }, planned > -1 ? { tone: "grass", text: "Gepland " + DAYS_S[planned] } : null, r.unpriced && Object.keys(r.unpriced).length ? { tone: "nieuw", text: Object.keys(r.unpriced).length + " zonder prijs" } : null].filter(Boolean),
+              action: h("div", { className: "card-actions" }, h(C.IconButton, { icon: "spark", label: "Bewerk " + r.title, onClick: function (e) { e.stopPropagation(); p.edit(r.id); } }), h(C.IconButton, { icon: "x", label: "Verwijder " + r.title, onClick: function (e) { e.stopPropagation(); cf[1](r.id); } })) }),
+            confirmId === r.id ? h("div", { className: "confirm", role: "alert" }, h("span", null, r.title + " verwijderen?"),
+              h("div", { className: "confirm-actions" }, h(C.Button, { size: "sm", variant: "secondary", onClick: function () { cf[1](null); } }, "Annuleren"), h(C.Button, { size: "sm", variant: "primary", onClick: function () { cf[1](null); p.remove(r.id); } }, "Verwijderen"))) : null);
+        })) : h("div", { className: "empty-card" }, h("p", null, "Je hebt nog geen eigen recepten. Voeg je favoriete gerecht toe, dan rekent de app de boodschappen en prijs voor je uit."), h(C.Button, { variant: "primary", trailingIcon: "plus", onClick: p.add }, "Eigen recept toevoegen"))),
+      h(Section, { title: "Gelikete recepten", aside: likedList.length ? h("button", { type: "button", className: "linkbtn", onClick: p.gotoLiked }, "Alles zien") : null },
+        likedList.length ? h("div", { className: "liked-strip" }, likedList.slice(0, 8).map(function (r) {
+          return h("button", { key: r.id, type: "button", className: "liked-tile", onClick: function () { p.open(r.id); } },
+            r.photo ? h("img", { className: "ce-photo", src: r.photo, alt: "", loading: "lazy" }) : h(C.Dish, { ingredients: r.ingredients, seed: r.title }),
+            h("span", null, r.title)); })) : h("p", { className: "muted" }, "Nog niets geliket. Tik op het hartje bij een recept.")),
+      h(Section, { title: "Smaakprofiel" },
+        prof.count ? h("p", null, "Je vond " + prof.count + " recepten lekker" + (prof.topIngs.length ? ", vaak met " + joinNl(namesOf(prof.topIngs)) : "") + ".") : h("p", { className: "muted" }, "Nog geen smaakprofiel. Doe de smaaktest om te beginnen."),
+        h("div", null, h(C.Button, { variant: "secondary", onClick: p.startTest }, prof.count ? "Doe de test opnieuw" : "Start de test"))),
+      h(Section, { title: "Huishouden" },
+        h("div", { className: "ce-setting" }, h("div", null, "Personen", h("small", null, "Recepten rekenen mee")), h(C.Stepper, { value: s.persons, onChange: function (v) { set({ persons: v }); }, label: "Aantal personen" })),
+        h("div", { className: "ce-group" },
+          h("div", { className: "member" }, h(C.Avatar, { name: s.account ? s.account.name : "?", tone: "grass" }), h("div", { className: "member-body" }, h("b", null, (s.account ? s.account.name : "Jij") + " (jij)"), h("small", null, Object.keys(s.liked).length + " gelikete recepten"))),
+          (s.household || []).map(function (m) {
+            var both = m.status === "active" ? allRecipes(s).filter(function (r) { return m.liked[r.id] && s.liked[r.id]; }).length : 0;
+            return h("div", { key: m.email, className: "member" }, h(C.Avatar, { name: m.name }),
+              h("div", { className: "member-body" }, h("b", null, m.name), h("small", null, m.status === "active" ? Object.keys(m.liked).length + " gelikete recepten · " + both + " samen" : "Uitnodiging verstuurd naar " + m.email),
+                m.status === "pending" ? h("button", { type: "button", className: "linkbtn", onClick: function () { p.accept(m.email); } }, "Demo: laat " + m.name + " accepteren") : null),
+              m.status === "active" ? h(C.Badge, { tone: "restje", icon: "check" }, "Gekoppeld") : h(C.Badge, null, "Wacht"),
+              h(C.IconButton, { icon: "x", label: m.name + " uit huishouden halen", onClick: function () { p.removeMember(m.email); } }));
+          })),
+        h(C.Button, { variant: "secondary", block: true, onClick: p.invite }, "+ Iemand toevoegen"),
+        partners(s).length ? h("p", { className: "small muted" }, "Recepten die " + joinNl(partners(s).map(function (m) { return m.name; })) + " lekker vindt, komen hoger in je suggesties, swipe-stapel en weekplanning.") : null),
+      h(Section, { title: "Wat vind je het belangrijkst?" }, h("div", { className: "chips" }, [["besparen", "Besparen"], ["gezond", "Gezond"], ["snel", "Snel klaar"], ["afwisseling", "Afwisseling"]].map(function (o) {
+        return h(C.Chip, { key: o[0], selected: s.priority === o[0], onClick: function () { set({ priority: o[0] }); } }, o[1]); })),
+        h("p", { className: "small muted" }, s.priority === "besparen" ? "De bespaarcoach geeft wisseltips als een recept veel nieuwe ingrediënten kost." : "Bespaartips staan uit. Kies Besparen om ze aan te zetten.")),
+      h(Section, { title: "Eten" }, h("div", { className: "chips" }, [["alles", "Alles"], ["flexi", "Flexitarisch"], ["vega", "Vegetarisch"]].map(function (o) {
+        return h(C.Chip, { key: o[0], selected: s.diet === o[0], onClick: function () { set({ diet: o[0] }); } }, o[1]); })),
+        h(C.Toggle, { label: "Alleen biologisch", description: "Vergelijk alleen bio-producten", checked: s.bio, onChange: function (v) { set({ bio: v }); } })),
+      h(Section, { title: "Weekbudget" }, h("div", { className: "chips" }, [40, 60, 80, 100].map(function (b) { return h(C.Chip, { key: b, selected: s.budget === b, onClick: function () { set({ budget: b }); } }, "€" + b); }))),
+      h(Section, { title: "Over dit prototype" }, h("p", { className: "small muted" }, "Recepten van picnic.app: namen, tijden en ingrediënten, gelezen als 4 personen. Prijzen zijn voorbeeldprijzen voor " + D.STORES.map(function (x) { return x.name; }).join(", ") + ".")),
+      h(Section, { title: "Instellingen" },
+        h("div", { className: "ce-group" },
+          h("button", { type: "button", className: "setrow", onClick: function () { set({ sheet: { type: "editName" } }); } }, h("span", null, "Naam", h("small", null, s.account ? s.account.name : "")), h(C.Icon, { name: "chevron", size: 20 })),
+          h("button", { type: "button", className: "setrow", onClick: function () { set({ sheet: { type: "editEmail" } }); } }, h("span", null, "E-mailadres", h("small", null, s.account ? s.account.email : "")), h(C.Icon, { name: "chevron", size: 20 })),
+          h("button", { type: "button", className: "setrow", onClick: function () { set({ screen: "onboarding" }); } }, h("span", null, "Voorkeuren opnieuw instellen", h("small", null, "Personen, prioriteit, dieet, budget")), h(C.Icon, { name: "chevron", size: 20 }))),
+        h(C.Button, { variant: "ghost", block: true, onClick: p.logout }, "Uitloggen"),
+        cf[0] === "account" ? h("div", { className: "confirm", role: "alert" }, h("span", null, "Je account en al je gegevens verwijderen?"),
+          h("div", { className: "confirm-actions" }, h(C.Button, { size: "sm", variant: "secondary", onClick: function () { cf[1](null); } }, "Annuleren"), h(C.Button, { size: "sm", variant: "primary", onClick: p.deleteAccount }, "Verwijderen")))
+          : h("button", { type: "button", className: "linkbtn danger-link", onClick: function () { cf[1]("account"); } }, "Account verwijderen")),
+      h("div", { className: "spacer" }));
+  }
+
+  /* ---------------- Compare sheet ---------------- */
+  function CompareSheet(p) {
+    var s = p.s, set = p.set, n = need(s.plan, s.persons), ranked = rank(n, s.bio), cnt = Object.keys(n).length;
+    return h(Sheet, { label: "Supermarkten vergelijken", eyebrow: cnt + " producten · " + s.persons + " personen", title: "Waar is je lijstje het goedkoopst?", onClose: p.close, tall: true },
+      h(C.Toggle, { label: "Alleen biologisch", checked: s.bio, onChange: function (v) { set({ bio: v }); } }),
+      h("div", { className: "list-gap" }, ranked.map(function (b, i) {
+        return h(C.StoreRow, { key: b.store.id, rank: i + 1, store: b.store.name, total: b.total, diff: b.total - ranked[0].total, note: s.bio ? (b.nonBio ? b.nonBio + " bio-product" + (b.nonBio > 1 ? "en" : "") + " bij een andere winkel" : "Alles in bio verkrijgbaar") : cnt + " van " + cnt + " producten" });
+      })),
+      h("p", { className: "small muted" }, s.bio ? "Voorbeeldprijzen. Heeft een winkel iets niet in bio, dan rekenen we de goedkoopste bio-versie bij een andere winkel mee." : "Voorbeeldprijzen. Per winkel rekenen we de goedkoopste verpakkingen voor je hele lijstje uit."));
+  }
+
+  /* ---------------- Smaaktest ---------------- */
+  var PREFS = [["groente", "Veel groente"], ["gezond", "Gezond"], ["vega", "Vegetarisch"], ["snel", "Snel klaar"], ["comfort", "Comfort food"], ["budget", "Budget"]];
+  var SWIPES = 12;
+  function testPool(s, w) {
+    // a varied pool: round-robin over the kinds of food so the test covers different tastes
+    var pool = allRecipes(s).filter(function (r) { return !(w.prefs.vega && !r.vega) && !(s.diet === "vega" && !r.vega); });
+    var order = ["comfort", "snel", "gezond", "vega", "budget", "groente"], picked = [], used = {};
+    for (var i = 0; picked.length < Math.min(SWIPES, pool.length) && i < 240; i++) {
+      var tag = order[i % order.length], cand = pool.filter(function (r) { return !used[r.id] && r.tags.indexOf(tag) > -1; });
+      if (cand.length) { var r = cand[(i * 7) % cand.length]; used[r.id] = 1; picked.push(r); }
+    }
+    pool.forEach(function (r) { if (picked.length < SWIPES && !used[r.id]) { used[r.id] = 1; picked.push(r); } });
+    return picked;
+  }
+  function mergeVotes(s, w) {
+    var lk = Object.assign({}, s.liked), dl = Object.assign({}, s.disliked);
+    Object.keys(w.votes).forEach(function (k) { if (w.votes[k] === "like") { lk[k] = 1; delete dl[k]; } else { dl[k] = 1; delete lk[k]; } });
+    return { liked: lk, disliked: dl };
+  }
+  function Smaaktest(p) {
+    var s = p.s, set = p.set, w = s.wiz, step = s.test;
+    function upd(o) { set({ wiz: Object.assign({}, w, o) }); }
+    var pool = useMemo(function () { return testPool(s, w); }, [w.prefs.vega, s.diet, s.custom.length]);
+    var toSwipe = pool.filter(function (r) { return !(r.id in w.votes); });
+    var swiped = pool.length - toSwipe.length;
+    function vote(dir) { var o = Object.assign({}, w.votes); o[toSwipe[0].id] = dir; upd({ votes: o }); }
+    var head = h("div", { className: "wiz-top" }, h(C.IconButton, { icon: step ? "back" : "x", label: step ? "Terug" : "Sluiten", onClick: function () { set({ test: step ? step - 1 : null }); } }),
+      h("div", { className: "ce-steps", style: { flex: 1 } }, [0, 1, 2, 3, 4].map(function (i) { return h("i", { key: i, "data-on": i <= step }); })));
+    var content, cta = null, res = null;
+    if (step === 0) {
+      content = [
+        h("h1", { key: "t", className: "display-xl" }, "Wat ga je deze week eten?"),
+        h("p", { key: "p" }, "Vertel ons wat je lekker vindt. Je swipet " + SWIPES + " recepten: naar rechts als je het lekker vindt, naar links als het niks voor je is. Daarna plannen wij je week, zo goedkoop mogelijk."),
+        h("ol", { key: "o", className: "steps-list" }, h("li", null, "Budget en personen"), h("li", null, "Waar heb je zin in?"), h("li", null, SWIPES + " recepten swipen"), h("li", null, "Je weekmenu"))];
+      cta = "Start de test";
+    } else if (step === 1) {
+      content = [
+        h("h1", { key: "t", className: "display-l" }, "Budget en personen"),
+        h("h2", { key: "h1", className: "heading" }, "Budget voor deze week"),
+        h("div", { key: "b", className: "chips" }, [40, 60, 80, 100].map(function (b) { return h(C.Chip, { key: b, selected: w.budget === b, onClick: function () { upd({ budget: b }); } }, "€" + b); })),
+        h("h2", { key: "h2", className: "heading" }, "Met hoeveel personen?"),
+        h("div", { key: "pp" }, h(C.Stepper, { value: s.persons, onChange: function (v) { set({ persons: v }); }, unit: "pers.", label: "Personen" })),
+        h("h2", { key: "h3", className: "heading" }, "Hoeveel dagen kook je?"),
+        h("div", { key: "dd" }, h(C.Stepper, { value: w.days, min: 3, max: 7, onChange: function (v) { upd({ days: v }); }, unit: "dagen", label: "Dagen koken" }))];
+      cta = "Volgende";
+    } else if (step === 2) {
+      content = [
+        h("h1", { key: "t", className: "display-l" }, "Waar heb je zin in?"),
+        h("p", { key: "p" }, "Kies wat je wilt, meerdere kan."),
+        h("div", { key: "c", className: "chips" }, PREFS.map(function (o) { return h(C.Chip, { key: o[0], selected: !!w.prefs[o[0]], onClick: function () { var x = Object.assign({}, w.prefs); x[o[0]] = !x[o[0]]; upd({ prefs: x, votes: o[0] === "vega" ? {} : w.votes }); } }, o[1]); }))];
+      cta = "Begin met swipen";
+    } else if (step === 3) {
+      content = [
+        h("h1", { key: "t", className: "display-l" }, toSwipe.length ? "Lekker of niet?" : "Klaar met swipen"),
+        h("div", { key: "pr", className: "swipe-progress" }, h("div", { className: "ce-steps" }, pool.map(function (r, i) { return h("i", { key: i, "data-on": i < swiped }); })), h("span", { className: "small muted num" }, swiped + " van " + pool.length)),
+        toSwipe.length ? h("div", { key: "sw", className: "swipe-wrap" },
+          toSwipe[1] ? h("div", { className: "swipe-under", "aria-hidden": true }) : null,
+          h(C.SwipeCard, { key: toSwipe[0].id, recipe: toSwipe[0], reason: toSwipe[0].tags.map(function (t) { return TAGNAME[t]; }).slice(0, 2).join(" · "), onSwipe: vote }),
+          h("div", { className: "ce-swipe-actions" }, h(C.IconButton, { icon: "x", label: "Niet voor mij", tone: "tomato", size: "lg", onClick: function () { vote("nope"); } }), h(C.IconButton, { icon: "heart", label: "Lekker", tone: "grass", size: "lg", onClick: function () { vote("like"); } })))
+          : h("p", { key: "d" }, "Top, we weten genoeg om je week te plannen.")];
+      cta = toSwipe.length ? null : "Maak mijn week";
+    } else {
+      var mv = mergeVotes(s, w), ns = Object.assign({}, s, mv), prof = profile(ns);
+      res = planWeek(ns, w);
+      content = [
+        h("h1", { key: "t", className: "display-l" }, "Je week staat klaar"),
+        h("p", { key: "pf" }, "Je houdt van ", h("b", null, profileLine(prof)), ". Daar hebben we je week op gepland, met zoveel mogelijk dezelfde ingrediënten."),
+        h(C.BudgetMeter, { key: "b", spent: res.total, budget: w.budget, label: "Totaal bij " + res.store }),
+        res.total > w.budget ? h(C.TipCard, { key: "ov", tone: "warn" }, "Dit menu kost " + eur(res.total - w.budget) + " meer dan je budget. Kies minder dagen of een hoger budget.") : null,
+        h("div", { key: "l", className: "list-gap" }, res.plan.map(function (id, d) { if (!id) return null; var r = rec(id);
+          return h(C.RecipeCard, { key: d, recipe: r, badges: [{ tone: "neutral", text: DAYS[d] }].concat(ns.liked[id] ? [{ tone: "restje", text: "Lekker" }] : []).concat(newIngs(res.plan, d, id).shared.length ? [{ tone: "save", text: "Deelt ingrediënten" }] : []) }); })),
+        h("p", { key: "n", className: "small muted" }, res.sharedCount + " ingrediënten komen in meer dan één recept terug.")];
+      cta = "Gebruik dit weekmenu";
+    }
+    function next() {
+      if (step < 4) return set({ test: step + 1 });
+      var mv2 = mergeVotes(s, w);
+      set({ plan: res.plan, budget: w.budget, test: null, tab: "week", day: 0, liked: mv2.liked, disliked: mv2.disliked, testDone: true, toast: "Je weekmenu staat klaar" });
+    }
+    return h("div", { className: "screen wiz" }, head, h("div", { className: "stack" }, content),
+      cta ? h("div", { className: "onboard-cta" }, h(C.Button, { size: "lg", block: true, trailingIcon: step === 4 ? "check" : "arrow", onClick: next }, cta)) : null);
+  }
+
+  /* ---------------- App shell ---------------- */
+  function load() { if (API) return null; try { return JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { return null; } }
+  var SYNC = ["account", "custom", "liked", "disliked", "notes", "customIngs", "household", "plan", "persons", "priority", "diet", "bio", "budget", "testDone", "checked", "kept"];
+  function restore(data) {
+    var o = {}; SYNC.forEach(function (k) { if (data && data[k] !== undefined) o[k] = data[k]; });
+    (o.custom || []).forEach(function (c) { REG[c.id] = prep(c); });
+    return o;
+  }
+  function DesktopGate() {
+    var url = location.origin + location.pathname, qr = "";
+    try { if (window.qrcode) { var q = window.qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } } catch (e) {}
+    return h("div", { className: "gate" },
+      h("span", { className: "wordmark" }, "Cheap-eat"),
+      h("h1", { className: "display-xl" }, "Open Cheap\u2011eat op je telefoon"),
+      h("p", null, "Deze app is voorlopig alleen gemaakt voor je telefoon. Scan de code met de camera van je telefoon, of open dit adres:"),
+      qr ? h("div", { className: "gate-qr", dangerouslySetInnerHTML: { __html: qr } }) : null,
+      h("p", { className: "gate-url" }, url),
+      h("p", { className: "small muted" }, "Tip: kies daarna in Safari \u201cDeel \u2192 Zet op beginscherm\u201d, dan staat Cheap-eat als app op je telefoon."));
+  }
+  function App() {
+    var st = useState(function () {
+      var base = { screen: API ? "loading" : "auth", account: null, household: [], notes: { 5: "Eten we buiten de deur" }, tab: "week", persons: 2, priority: "besparen", diet: "alles", bio: false, budget: 60, day: 1,
+        plan: ["ricotta-ravioli-met-spinazie-en-citroen", "kip-in-rendangsaus-met-rijst-en-boontjes", null, "spaghetti-met-boursin-prosciutto-en-tomaatjes", "romige-gnocchi-met-spinazie", null, null],
+        liked: {}, disliked: {}, checked: {}, kept: {}, custom: [], testDone: false,
+        sheet: null, detail: null, adding: false, test: null, toast: null,
+        wiz: { budget: 60, days: 5, prefs: {}, votes: {} } };
+      var saved = load();
+      if (saved && saved.custom) { saved.custom.forEach(function (c) { REG[c.id] = prep(c); }); base.custom = saved.custom; }
+      if (saved && saved.account) { base.account = saved.account; base.household = saved.household || []; base.liked = saved.liked || {}; base.notes = saved.notes || {}; base.customIngs = saved.customIngs || {}; base.screen = "app"; }
+      base.known = saved && saved.known || null;
+      return base;
+    });
+    var s = st[0]; function set(o) { st[1](function (prev) { return Object.assign({}, prev, o); }); }
+    // real backend: restore an existing session on start
+    useEffect(function () {
+      if (!API) return;
+      API.session().then(function (sess) {
+        if (!sess) return set({ screen: "auth" });
+        return API.load().then(function (data) {
+          var email = sess.user.email;
+          if (data && data.account) set(Object.assign(restore(data), { account: Object.assign({}, data.account, { email: email }), screen: "app" }));
+          else set({ account: { name: nameFromEmail(email), email: email }, screen: "onboarding" });
+        });
+      }).catch(function () { set({ screen: "auth", toast: "Kon geen verbinding maken. Probeer het opnieuw." }); });
+    }, []);
+    // real backend: save your data (debounced) whenever it changes
+    var syncDeps = SYNC.map(function (k) { return s[k]; });
+    useEffect(function () {
+      if (!API || !s.account || s.screen === "auth" || s.screen === "loading") return;
+      var t = setTimeout(function () { var d = {}; SYNC.forEach(function (k) { d[k] = s[k]; }); API.save(d).catch(function () { set({ toast: "Opslaan mislukt. Controleer je internet." }); }); }, 700);
+      return function () { clearTimeout(t); };
+    }, syncDeps.concat([s.screen]));
+    useEffect(function () { if (API) return; try { localStorage.setItem(STORE_KEY, JSON.stringify({ custom: s.custom, account: s.account, household: s.household, liked: s.liked, notes: s.notes, customIngs: s.customIngs, known: s.account || s.known })); } catch (e) {} }, [s.custom, s.account, s.household, s.liked, s.notes, s.customIngs]);
+    useEffect(function () { if (!s.toast) return; var t = setTimeout(function () { set({ toast: null }); }, 2600); return function () { clearTimeout(t); }; }, [s.toast]);
+    var n = useMemo(function () { return need(s.plan, s.persons); }, [s.plan, s.persons, s.custom]);
+    var ranked = useMemo(function () { return Object.keys(n).length ? rank(n, s.bio) : null; }, [n, s.bio]);
+    function pick(id) { set({ sheet: { type: "day", id: id } }); }
+    function choose(id, d) {
+      var plan = s.plan.map(function (x) { return x === id ? null : x; });
+      if (d > -1) plan[d] = id;
+      set({ plan: plan, sheet: null, day: d > -1 ? d : s.day, toast: d > -1 ? rec(id).title + " staat op " + DAYS[d].toLowerCase() : "Uit je week gehaald" });
+    }
+    function startTest() { set({ test: 0, detail: null, wiz: Object.assign({}, s.wiz, { votes: {} }) }); }
+    function removeCustom(id) {
+      set({ custom: s.custom.filter(function (c) { return c.id !== id; }), plan: s.plan.map(function (x) { return x === id ? null : x; }), liked: setKey(s.liked, id, false), toast: "Recept verwijderd" });
+    }
+    function saveCustom(r, newIng) {
+      REG[r.id] = prep(r);
+      var ci = Object.assign({}, s.customIngs || {}); (newIng || []).forEach(function (x) { var k = x.label.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, "-"); ci[k] = { label: x.label, unit: x.unit }; });
+      var exists = s.custom.some(function (c) { return c.id === r.id; });
+      set({ custom: exists ? s.custom.map(function (c) { return c.id === r.id ? r : c; }) : s.custom.concat([r]), customIngs: ci, adding: false, editing: null, detail: r.id, liked: exists ? s.liked : setKey(s.liked, r.id, 1), toast: exists ? "Wijzigingen opgeslagen" : "Recept geplaatst" });
+    }
+    function openAuthor(id) { if (id === "me") set({ detail: null, author: null, tab: "profiel" }); else set({ author: id, detail: null, backTo: null, backDetail: s.detail }); }
+    var body;
+    if (window.CE_GATE) return h(DesktopGate);
+    if (s.screen === "loading") body = h("div", { className: "loading" }, h("span", { className: "wordmark" }, "Cheap-eat"), h("span", { className: "ce-btn-spin", "aria-label": "Laden" }));
+    else if (s.screen === "auth") body = h("div", { className: "scroll", key: "auth" }, h(Auth, { known: s.known, done: function (acc, how, data) { set(Object.assign(data ? restore(data) : {}, { account: acc, screen: how === "signup" ? "onboarding" : "app", toast: how === "signup" ? "Account aangemaakt" : "Welkom terug, " + acc.name })); } }));
+    else if (s.screen === "onboarding") body = h(Onboarding, { s: s, set: set, startStep: 1, done: function () { set({ screen: "app" }); } });
+    else if (s.test != null) body = h("div", { className: "scroll", key: "test" }, h(Smaaktest, { s: s, set: set }));
+    else if (s.adding || s.editing) body = h("div", { className: "scroll", key: "add" + (s.editing || "") }, h(AddRecipe, { initial: s.editing ? rec(s.editing) : null, customIngs: s.customIngs, save: saveCustom, close: function () { set({ adding: false, editing: null }); } }));
+    else if (s.detail) body = h("div", { className: "scroll", key: "d" + s.detail }, h(RecipeDetail, { s: s, set: set, id: s.detail, pick: pick, openAuthor: openAuthor, edit: function (id) { set({ editing: id }); }, close: function () { set({ detail: null, author: s.backTo || null, backTo: null }); } }));
+    else if (s.author) body = h("div", { className: "scroll", key: "a" + s.author }, h(AuthorProfile, { s: s, set: set, id: s.author, open: function (id) { set({ detail: id, author: null, backTo: s.author }); }, pick: pick, close: function () { set({ author: null, detail: s.backDetail || null, backDetail: null }); } }));
+    else body = h(React.Fragment, null,
+      h("div", { className: "scroll", key: s.tab }, s.tab === "week" ? h(WeekTab, { s: s, set: set, open: function (id) { set({ detail: id }); }, startTest: startTest })
+        : s.tab === "recepten" ? h(RecipesTab, { s: s, set: set, open: function (id) { set({ detail: id }); }, pick: pick, add: function () { set({ adding: true }); }, startTest: startTest })
+        : s.tab === "lijstje" ? h(ListTab, { s: s, set: set, compare: function () { set({ sheet: { type: "compare" } }); } })
+        : h(ProfileTab, { s: s, set: set, startTest: startTest, open: function (id) { set({ detail: id }); }, add: function () { set({ adding: true }); }, remove: removeCustom, edit: function (id) { set({ editing: id }); }, gotoLiked: function () { set({ tab: "recepten", recMode: "liked" }); },
+          invite: function () { set({ sheet: { type: "invite" } }); },
+          accept: function (email) { set({ household: s.household.map(function (m) { if (m.email !== email) return m; var lk = {}; PARTNER_LIKES.forEach(function (id) { lk[id] = 1; }); return Object.assign({}, m, { status: "active", liked: lk }); }), persons: Math.max(s.persons, 1 + s.household.length), toast: "Huishouden gekoppeld" }); },
+          removeMember: function (email) { set({ household: s.household.filter(function (m) { return m.email !== email; }), toast: "Uit je huishouden gehaald" }); },
+          logout: function () { if (API) API.signOut(); set({ known: s.account, account: null, screen: "auth", tab: "week", detail: null, sheet: null }); },
+          deleteAccount: function () {
+            var wipe = function () { try { localStorage.removeItem(STORE_KEY); } catch (e) {} set({ account: null, known: null, household: [], liked: {}, disliked: {}, custom: [], notes: {}, screen: "auth", tab: "week", toast: "Account verwijderd" }); };
+            if (!API) return wipe();
+            API.deleteAccount().then(wipe, function (er) { set({ toast: er.message }); });
+          } })),
+      h("div", { className: "dock" },
+        ranked ? h(C.CheapestBar, { store: ranked[0].store.name, total: ranked[0].total, saving: ranked[1].total - ranked[0].total, onClick: function () { set({ sheet: { type: "compare" } }); } }) : null,
+        h(C.TabBar, { active: s.tab, onChange: function (t) { set({ tab: t }); } })));
+    var acct = function (o) { set({ account: Object.assign({}, s.account, o), sheet: null, toast: o.email ? "E-mailadres gewijzigd" : "Naam gewijzigd" }); };
+    return h("div", { className: "phone" + (s.screen === "onboarding" ? " phone-hero" : "") }, body,
+      s.sheet && s.sheet.type === "editName" ? h(EditNameSheet, { s: s, close: function () { set({ sheet: null }); }, save: acct }) : null,
+      s.sheet && s.sheet.type === "editEmail" ? h(EditEmailSheet, { s: s, close: function () { set({ sheet: null }); }, save: acct }) : null,
+      s.sheet && s.sheet.type === "invite" ? h(InviteSheet, { s: s, close: function () { set({ sheet: null }); }, invite: function (m) { set({ household: (s.household || []).concat([m]), sheet: null, toast: "Uitnodiging verstuurd naar " + m.email }); } }) : null,
+      s.sheet && s.sheet.type === "compare" ? h(CompareSheet, { s: s, set: set, close: function () { set({ sheet: null }); } }) : null,
+      s.sheet && s.sheet.type === "day" ? h(DaySheet, { s: s, id: s.sheet.id, close: function () { set({ sheet: null }); }, choose: function (d) { choose(s.sheet.id, d); } }) : null,
+      s.toast ? h("div", { className: "toast", role: "status" }, h(C.Icon, { name: "check", size: 18 }), s.toast) : null);
+  }
+
+  ReactDOM.createRoot(document.getElementById("app")).render(h(App));
+})();
+
+</script>
+</body>
+</html>
